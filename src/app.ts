@@ -16,6 +16,7 @@ import teamRoutes from "./modules/team/routes";
 import newsletterRoutes from "./modules/newsletter/routes";
 import publicRoutes from "./modules/public/routes";
 import messageRoutes from "./modules/messages/routes";
+import searchRoutes from "./modules/search/routes";
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use("/api/gallery", adminLimiter, galleryRoutes);
 app.use("/api/team", adminLimiter, teamRoutes);
 app.use("/api/newsletter", adminLimiter, newsletterRoutes);
 app.use("/api/messages", adminLimiter, messageRoutes);
+app.use("/api/search", adminLimiter, searchRoutes);
 app.use("/api/public", publicLimiter, publicRoutes);
 
 app.use(errorHandler);

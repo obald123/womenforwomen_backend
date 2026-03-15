@@ -155,5 +155,37 @@ export async function verifySubscription(req: Request, res: Response) {
     data: { verified: true, verifyToken: null },
   });
 
-  res.send("Subscription verified. Thank you!");
+  res.send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Subscription Confirmed</title>
+    <style>
+      body { margin:0; font-family: 'Montserrat', Arial, sans-serif; background:#0B7F73; color:#fff; }
+      .wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px; }
+      .card { max-width:680px; background:#0F6E64; border:1px solid rgba(255,255,255,.2); padding:36px; }
+      .kicker { font-size:10px; letter-spacing:.35em; text-transform:uppercase; color:rgba(255,255,255,.7); font-weight:700; }
+      h1 { margin:16px 0 8px; font-size:40px; line-height:1; text-transform:uppercase; }
+      p { color:rgba(255,255,255,.85); line-height:1.6; font-size:14px; }
+      .actions { margin-top:24px; display:flex; gap:12px; flex-wrap:wrap; }
+      .btn { display:inline-block; padding:12px 18px; font-size:11px; letter-spacing:.2em; text-transform:uppercase; font-weight:800; text-decoration:none; }
+      .primary { background:#fff; color:#0B7F73; }
+      .ghost { border:1px solid rgba(255,255,255,.5); color:#fff; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <div class="kicker">Subscription Confirmed</div>
+        <h1>You are subscribed.</h1>
+        <p>Thank you for joining Women for Women Rwanda. You will now receive our latest stories, program updates, and upcoming events.</p>
+        <div class="actions">
+          <a class="btn primary" href="${env.BASE_URL}">Go to Home</a>
+          <a class="btn ghost" href="${env.BASE_URL}/news">Read News</a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>`);
 }

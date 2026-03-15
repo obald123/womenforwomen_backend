@@ -22,7 +22,7 @@ export async function sendCampaign(req: Request, res: Response) {
   const campaign = await prisma.newsletterCampaign.findUnique({ where: { id } });
   if (!campaign) throw new NotFoundError("Campaign not found");
 
-  const subs = await prisma.subscriber.findMany({ where: { verified: true } });
+  const subs = await prisma.subscriber.findMany();
   const template = newsletterTemplate(campaign.subject, campaign.content);
 
   subs.forEach((s, idx) => {
