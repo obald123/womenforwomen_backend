@@ -21,7 +21,7 @@ async function uniqueSlug(base: string) {
 
 export async function createArticle(req: Request, res: Response) {
   const { title, excerpt, content, category, status } = req.body as Record<string, string>;
-  const slug = await uniqueSlug(title);
+  let slug = await uniqueSlug(title);
   const safeContent = sanitizeContent(content);
 
   let coverImage: string | undefined;
@@ -30,18 +30,32 @@ export async function createArticle(req: Request, res: Response) {
     coverImage = saved.url;
   }
 
-  const article = await prisma.article.create({
-    data: {
-      title,
-      slug,
-      excerpt,
-      content: safeContent,
-      category: category as any,
-      status: (status as any) || "DRAFT",
-      coverImage,
-      publishedAt: status === "PUBLISHED" ? new Date() : null,
-    },
-  });
+  let article;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      article = await prisma.article.create({
+        data: {
+          title,
+          slug,
+          excerpt,
+          content: safeContent,
+          category: category as any,
+          status: (status as any) || "DRAFT",
+          coverImage,
+          publishedAt: status === "PUBLISHED" ? new Date() : null,
+        },
+      });
+      break;
+    } catch (err: any) {
+      if (err?.code === "P2002" && err?.meta?.target?.includes("slug")) {
+        slug = await uniqueSlug(title);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  if (!article) throw new Error("Failed to create article");
 
   await logAudit("article.create", req.user?.id ?? null, { id: article.id });
   res.status(201).json({ success: true, data: article });

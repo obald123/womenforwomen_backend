@@ -57,7 +57,12 @@ export async function publicEvents(req: Request, res: Response) {
   if (upcoming === "true") where.eventDate = { gte: new Date() };
 
   const [items, total] = await Promise.all([
-    prisma.event.findMany({ where, skip, take, orderBy: { eventDate: "asc" } }),
+    prisma.event.findMany({
+      where,
+      skip,
+      take,
+      orderBy: [{ isFeatured: "desc" }, { eventDate: "asc" }],
+    }),
     prisma.event.count({ where }),
   ]);
 

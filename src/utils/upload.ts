@@ -1,7 +1,8 @@
 import multer from "multer";
 import { ValidationError } from "./errors";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+// Allow larger uploads so we can compress before sending to Cloudinary.
+const MAX_FILE_SIZE = 25 * 1024 * 1024;
 const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 const storage = multer.memoryStorage();

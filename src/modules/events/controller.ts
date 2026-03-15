@@ -20,7 +20,7 @@ async function uniqueSlug(base: string) {
 }
 
 export async function createEvent(req: Request, res: Response) {
-  const { title, excerpt, content, eventDate, endDate, location, isOnline, meetingLink, status } =
+  const { title, excerpt, content, eventDate, endDate, location, isOnline, meetingLink, status, badgeLabel, isFeatured } =
     req.body as Record<string, string>;
 
   const slug = await uniqueSlug(title);
@@ -30,21 +30,30 @@ export async function createEvent(req: Request, res: Response) {
     coverImage = saved.url;
   }
 
-  const event = await prisma.event.create({
-    data: {
-      title,
-      slug,
-      excerpt,
-      content: sanitizeContent(content),
-      coverImage,
-      eventDate: new Date(eventDate),
-      endDate: endDate ? new Date(endDate) : null,
-      location,
-      isOnline: isOnline === "true" || isOnline === true,
-      meetingLink: meetingLink || null,
-      status: (status as any) || "DRAFT",
-      publishedAt: status === "PUBLISHED" ? new Date() : null,
-    },
+  const featureFlag = isFeatured === "true" || isFeatured === true;
+
+  const event = await prisma.$transaction(async (tx) => {
+    if (featureFlag) {
+      await tx.event.updateMany({ data: { isFeatured: false } });
+    }
+    return tx.event.create({
+      data: {
+        title,
+        slug,
+        excerpt,
+        content: sanitizeContent(content),
+        coverImage,
+        badgeLabel: badgeLabel || null,
+        isFeatured: featureFlag,
+        eventDate: new Date(eventDate),
+        endDate: endDate ? new Date(endDate) : null,
+        location,
+        isOnline: isOnline === "true" || isOnline === true,
+        meetingLink: meetingLink || null,
+        status: (status as any) || "DRAFT",
+        publishedAt: status === "PUBLISHED" ? new Date() : null,
+      },
+    });
   });
 
   await logAudit("event.create", req.user?.id ?? null, { id: event.id });
@@ -88,11 +97,24 @@ export async function updateEvent(req: Request, res: Response) {
   }
   if (updates.eventDate) updates.eventDate = new Date(updates.eventDate).toISOString();
   if (updates.endDate) updates.endDate = new Date(updates.endDate).toISOString();
+  if (typeof updates.isOnline !== "undefined") {
+    (updates as any).isOnline =
+      updates.isOnline === "true" || updates.isOnline === true;
+  }
+  if (typeof updates.isFeatured !== "undefined") {
+    (updates as any).isFeatured =
+      updates.isFeatured === "true" || updates.isFeatured === true;
+  }
   if (updates.status === "PUBLISHED" && !existing.publishedAt) {
     updates.publishedAt = new Date().toISOString();
   }
 
-  const item = await prisma.event.update({ where: { id }, data: updates as any });
+  const item = await prisma.$transaction(async (tx) => {
+    if ((updates as any).isFeatured === true) {
+      await tx.event.updateMany({ data: { isFeatured: false } });
+    }
+    return tx.event.update({ where: { id }, data: updates as any });
+  });
   await logAudit("event.update", req.user?.id ?? null, { id: item.id });
   res.json({ success: true, data: item });
 }

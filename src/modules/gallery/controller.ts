@@ -45,7 +45,11 @@ export async function listGalleries(req: Request, res: Response) {
   const { skip, take } = parsePagination(page, pageSize);
 
   const where: any = {};
-  if (status) where.status = status;
+  if (status) {
+    where.status = status;
+  } else {
+    where.status = { not: "ARCHIVED" };
+  }
 
   const [items, total] = await Promise.all([
     prisma.gallery.findMany({ where, skip, take, orderBy: { createdAt: "desc" } }),

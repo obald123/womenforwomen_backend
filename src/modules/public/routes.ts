@@ -12,6 +12,7 @@ import {
   verifySubscription,
 } from "./controller";
 import { asyncHandler } from "../../utils/asyncHandler";
+import { publicMessageRouter } from "../messages/routes";
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.get("/gallery", asyncHandler(publicGallery));
 router.get("/team", asyncHandler(publicTeam));
 router.post("/subscribe", validate(subscribeSchema), asyncHandler(subscribe));
 router.get("/verify-subscription", asyncHandler(verifySubscription));
+router.use("/messages", publicMessageRouter);
 
 export default router;

@@ -13,6 +13,8 @@ export const createEventSchema = z.object({
     location: z.string().min(2),
     isOnline: boolLike.optional(),
     meetingLink: z.string().url().optional(),
+    badgeLabel: z.string().min(2).optional(),
+    isFeatured: boolLike.optional(),
     status: status.optional(),
   }),
 });
@@ -27,6 +29,8 @@ export const updateEventSchema = z.object({
     location: z.string().optional(),
     isOnline: boolLike.optional(),
     meetingLink: z.string().url().optional(),
+    badgeLabel: z.string().min(2).optional(),
+    isFeatured: boolLike.optional(),
     status: status.optional(),
   }),
   params: z.object({ id: z.string().min(1) }),

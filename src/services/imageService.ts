@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
+import sharp from "sharp";
 import { env } from "../config/env";
 
 cloudinary.config({
@@ -8,6 +9,16 @@ cloudinary.config({
 });
 
 export async function saveCloudImage(file: Express.Multer.File, folder: string) {
+  const processed = await sharp(file.buffer)
+    .rotate()
+    .resize({ width: 2000, withoutEnlargement: true })
+    .jpeg({ quality: 80, mozjpeg: true })
+    .toBuffer();
+
+  if (processed.length > 10 * 1024 * 1024) {
+    throw new Error("Compressed image is still above 10MB. Please upload a smaller image.");
+  }
+
   return new Promise<{ url: string; publicId: string }>((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
@@ -24,6 +35,6 @@ export async function saveCloudImage(file: Express.Multer.File, folder: string) 
       }
     );
 
-    uploadStream.end(file.buffer);
+    uploadStream.end(processed);
   });
 }

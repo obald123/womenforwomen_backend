@@ -95,6 +95,8 @@ model Event {
   excerpt     String
   content     String
   coverImage  String?
+  badgeLabel  String?
+  isFeatured  Boolean   @default(false)
   eventDate   DateTime
   endDate     DateTime?
   location    String
@@ -178,4 +180,18 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+model ContactMessage {
+  id           String   @id @default(cuid())
+  name         String
+  email        String
+  phone        String?
+  organization String?
+  message      String
+  isRead       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
 }
