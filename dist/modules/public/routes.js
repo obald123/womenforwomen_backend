@@ -1,0 +1,22 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const validate_1 = require("../../middleware/validate");
+const newsletter_1 = require("../../validators/newsletter");
+const controller_1 = require("./controller");
+const asyncHandler_1 = require("../../utils/asyncHandler");
+const routes_1 = require("../messages/routes");
+const routes_2 = require("../jobs/routes");
+const router = (0, express_1.Router)();
+router.get("/articles", (0, asyncHandler_1.asyncHandler)(controller_1.publicArticles));
+router.get("/articles/:slug", (0, asyncHandler_1.asyncHandler)(controller_1.publicArticle));
+router.get("/events", (0, asyncHandler_1.asyncHandler)(controller_1.publicEvents));
+router.get("/events/:slug", (0, asyncHandler_1.asyncHandler)(controller_1.publicEvent));
+router.get("/gallery", (0, asyncHandler_1.asyncHandler)(controller_1.publicGallery));
+router.get("/team", (0, asyncHandler_1.asyncHandler)(controller_1.publicTeam));
+router.post("/subscribe", (0, validate_1.validate)(newsletter_1.subscribeSchema), (0, asyncHandler_1.asyncHandler)(controller_1.subscribe));
+router.get("/verify-subscription", (0, asyncHandler_1.asyncHandler)(controller_1.verifySubscription));
+router.use("/messages", routes_1.publicMessageRouter);
+router.use("/jobs", routes_2.publicJobRouter);
+exports.default = router;
+//# sourceMappingURL=routes.js.map

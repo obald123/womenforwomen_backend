@@ -13,6 +13,7 @@ import {
 } from "./controller";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { publicMessageRouter } from "../messages/routes";
+import { publicJobRouter } from "../jobs/routes";
 
 const router = Router();
 
@@ -25,5 +26,6 @@ router.get("/team", asyncHandler(publicTeam));
 router.post("/subscribe", validate(subscribeSchema), asyncHandler(subscribe));
 router.get("/verify-subscription", asyncHandler(verifySubscription));
 router.use("/messages", publicMessageRouter);
+router.use("/jobs", publicJobRouter);
 
 export default router;

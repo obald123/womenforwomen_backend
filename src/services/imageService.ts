@@ -38,3 +38,23 @@ export async function saveCloudImage(file: Express.Multer.File, folder: string) 
     uploadStream.end(processed);
   });
 }
+
+export async function saveCloudFile(file: Express.Multer.File, folder: string) {
+  return new Promise<{ url: string; publicId: string }>((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: "raw",
+      },
+      (error, result) => {
+        if (error || !result) {
+          reject(error ?? new Error("Cloudinary upload failed"));
+          return;
+        }
+        resolve({ url: result.secure_url, publicId: result.public_id });
+      }
+    );
+
+    uploadStream.end(file.buffer);
+  });
+}

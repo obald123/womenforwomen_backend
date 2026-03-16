@@ -33,6 +33,19 @@ enum TeamCategory {
   VOLUNTEERS
 }
 
+enum JobStatus {
+  OPEN
+  CLOSED
+}
+
+enum ApplicationStatus {
+  NEW
+  REVIEWING
+  SHORTLISTED
+  REJECTED
+  HIRED
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -194,4 +207,69 @@ model ContactMessage {
 
   @@index([isRead])
   @@index([createdAt])
+}
+
+model JobOpening {
+  id           String    @id @default(cuid())
+  title        String
+  slug         String    @unique
+  department   String?
+  location     String?
+  employment   String?
+  description  String
+  requirements Json?
+  dueDate      DateTime?
+  status       JobStatus @default(OPEN)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  applications JobApplication[]
+
+  @@index([status])
+}
+
+model JobApplication {
+  id            String            @id @default(cuid())
+  jobId         String
+  name          String
+  email         String
+  phone         String?
+  resumeUrl     String
+  resumeName    String?
+  resumeType    String?
+  supportingUrl String?
+  supportingName String?
+  supportingType String?
+  coverLetter   String?
+  linkedinUrl   String?
+  portfolioUrl  String?
+  status        ApplicationStatus @default(NEW)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  job JobOpening @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([status])
+}
+
+model GeneralApplication {
+  id            String            @id @default(cuid())
+  name          String
+  email         String
+  phone         String?
+  resumeUrl     String?
+  resumeName    String?
+  resumeType    String?
+  supportingUrl String?
+  supportingName String?
+  supportingType String?
+  coverLetter   String?
+  linkedinUrl   String?
+  portfolioUrl  String?
+  status        ApplicationStatus @default(NEW)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([status])
 }

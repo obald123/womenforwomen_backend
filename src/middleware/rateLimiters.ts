@@ -7,9 +7,11 @@ export const publicLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const isProd = process.env.NODE_ENV === "production";
+
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: isProd ? 5 : 50,
   standardHeaders: true,
   legacyHeaders: false,
 });
