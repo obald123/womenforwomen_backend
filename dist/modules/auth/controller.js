@@ -68,7 +68,8 @@ async function requestPasswordReset(req, res) {
         data: { userId: user.id, tokenHash, expiresAt },
     });
     const link = `${env_1.env.BASE_URL}/reset-password?token=${rawToken}`;
-    const template = (0, emailTemplates_1.resetPasswordTemplate)(link);
+    const logoUrl = `${env_1.env.BASE_URL}/images/site/logo.png`;
+    const template = (0, emailTemplates_1.resetPasswordTemplate)(link, logoUrl);
     await (0, mailService_1.sendMail)(user.email, template.subject, template.html, template.text);
     res.json({ success: true });
 }

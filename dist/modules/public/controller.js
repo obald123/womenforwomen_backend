@@ -134,7 +134,8 @@ async function subscribe(req, res) {
         create: { email, name, verifyToken: token, verified: false },
     });
     const link = `${env_1.env.API_URL}/api/public/verify-subscription?token=${token}`;
-    const template = (0, emailTemplates_1.verificationEmailTemplate)(link);
+    const logoUrl = `${env_1.env.BASE_URL}/images/site/logo.png`;
+    const template = (0, emailTemplates_1.verificationEmailTemplate)(link, logoUrl);
     await (0, mailService_1.sendMail)(email, template.subject, template.html, template.text);
     res.json({ success: true, message: "Check your email to confirm subscription" });
 }

@@ -11,6 +11,7 @@ const errors_1 = require("../../utils/errors");
 const auditService_1 = require("../../services/auditService");
 const mailService_1 = require("../../services/mailService");
 const env_1 = require("../../config/env");
+const emailTemplates_1 = require("../../utils/emailTemplates");
 async function createMessage(req, res) {
     const { name, email, phone, organization, message } = req.body;
     const item = await prisma_1.prisma.contactMessage.create({
@@ -22,29 +23,9 @@ async function createMessage(req, res) {
             message,
         },
     });
-    const subject = `New partner message from ${name}`;
-    const text = [
-        `Name: ${name}`,
-        `Email: ${email}`,
-        phone ? `Phone: ${phone}` : null,
-        organization ? `Organization: ${organization}` : null,
-        "",
-        message,
-    ]
-        .filter(Boolean)
-        .join("\n");
-    const html = `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-      <h3>New Partner Message</h3>
-      <p><strong>Name:</strong> ${name}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      ${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ""}
-      ${organization ? `<p><strong>Organization:</strong> ${organization}</p>` : ""}
-      <p><strong>Message:</strong></p>
-      <p>${String(message).replace(/\n/g, "<br/>")}</p>
-    </div>
-  `;
-    await (0, mailService_1.sendMail)(env_1.env.ADMIN_EMAIL, subject, html, text);
+    const logoUrl = `${env_1.env.BASE_URL}/images/site/logo.png`;
+    const template = (0, emailTemplates_1.adminMessageTemplate)({ name, email, phone: phone || null, organization: organization || null, message }, logoUrl);
+    await (0, mailService_1.sendMail)(env_1.env.ADMIN_EMAIL, template.subject, template.html, template.text);
     res.status(201).json({ success: true, data: item });
 }
 async function listMessages(req, res) {

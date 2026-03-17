@@ -32,7 +32,7 @@ async function createEvent(req, res) {
         const saved = await (0, imageService_1.saveCloudImage)(req.file, "wfw/events");
         coverImage = saved.url;
     }
-    const featureFlag = isFeatured === "true" || isFeatured === true;
+    const featureFlag = String(isFeatured).toLowerCase() === "true";
     const event = await prisma_1.prisma.$transaction(async (tx) => {
         if (featureFlag) {
             await tx.event.updateMany({ data: { isFeatured: false } });
@@ -49,7 +49,7 @@ async function createEvent(req, res) {
                 eventDate: new Date(eventDate),
                 endDate: endDate ? new Date(endDate) : null,
                 location,
-                isOnline: isOnline === "true" || isOnline === true,
+                isOnline: String(isOnline).toLowerCase() === "true",
                 meetingLink: meetingLink || null,
                 status: status || "DRAFT",
                 publishedAt: status === "PUBLISHED" ? new Date() : null,
@@ -99,12 +99,10 @@ async function updateEvent(req, res) {
     if (updates.endDate)
         updates.endDate = new Date(updates.endDate).toISOString();
     if (typeof updates.isOnline !== "undefined") {
-        updates.isOnline =
-            updates.isOnline === "true" || updates.isOnline === true;
+        updates.isOnline = String(updates.isOnline).toLowerCase() === "true";
     }
     if (typeof updates.isFeatured !== "undefined") {
-        updates.isFeatured =
-            updates.isFeatured === "true" || updates.isFeatured === true;
+        updates.isFeatured = String(updates.isFeatured).toLowerCase() === "true";
     }
     if (updates.status === "PUBLISHED" && !existing.publishedAt) {
         updates.publishedAt = new Date().toISOString();

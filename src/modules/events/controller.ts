@@ -30,7 +30,7 @@ export async function createEvent(req: Request, res: Response) {
     coverImage = saved.url;
   }
 
-  const featureFlag = isFeatured === "true" || isFeatured === true;
+  const featureFlag = String(isFeatured).toLowerCase() === "true";
 
   const event = await prisma.$transaction(async (tx) => {
     if (featureFlag) {
@@ -48,7 +48,7 @@ export async function createEvent(req: Request, res: Response) {
         eventDate: new Date(eventDate),
         endDate: endDate ? new Date(endDate) : null,
         location,
-        isOnline: isOnline === "true" || isOnline === true,
+        isOnline: String(isOnline).toLowerCase() === "true",
         meetingLink: meetingLink || null,
         status: (status as any) || "DRAFT",
         publishedAt: status === "PUBLISHED" ? new Date() : null,
@@ -98,12 +98,10 @@ export async function updateEvent(req: Request, res: Response) {
   if (updates.eventDate) updates.eventDate = new Date(updates.eventDate).toISOString();
   if (updates.endDate) updates.endDate = new Date(updates.endDate).toISOString();
   if (typeof updates.isOnline !== "undefined") {
-    (updates as any).isOnline =
-      updates.isOnline === "true" || updates.isOnline === true;
+    (updates as any).isOnline = String(updates.isOnline).toLowerCase() === "true";
   }
   if (typeof updates.isFeatured !== "undefined") {
-    (updates as any).isFeatured =
-      updates.isFeatured === "true" || updates.isFeatured === true;
+    (updates as any).isFeatured = String(updates.isFeatured).toLowerCase() === "true";
   }
   if (updates.status === "PUBLISHED" && !existing.publishedAt) {
     updates.publishedAt = new Date().toISOString();

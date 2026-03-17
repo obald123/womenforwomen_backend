@@ -1,0 +1,34 @@
+---
+deployment:
+  tasks:
+    - echo "Starting backend deployment..."
+    - set -e
+    - export DEPLOYPATH=/home1/womenfor/repositories/womenforwomen_backend 
+    - echo "Deploying to $DEPLOYPATH"
+
+    - echo "Creating required directories..."
+    - mkdir -p $DEPLOYPATH
+    - mkdir -p $DEPLOYPATH/logs
+    - mkdir -p $DEPLOYPATH/tmp
+
+    - echo "Syncing files (excluding dev artifacts)..."
+    - rsync -a --exclude ".git" --exclude "node_modules" --exclude ".env" --exclude "src" ./ $DEPLOYPATH/
+
+    - echo "Installing production dependencies..."
+    - cd $DEPLOYPATH
+    - npm install --production
+
+    - echo "Generating Prisma client..."
+    - npx prisma generate
+
+    - echo "Running Prisma migrations..."
+    - npx prisma migrate deploy
+
+    - echo "Setting permissions..."
+    - find $DEPLOYPATH -type d -exec chmod 755 {} \;
+    - find $DEPLOYPATH -type f -exec chmod 644 {} \;
+
+    - echo "Restarting Passenger app..."
+    - touch $DEPLOYPATH/tmp/restart.txt
+
+    - echo "Backend deployment complete."
