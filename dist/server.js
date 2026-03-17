@@ -6,8 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const app_1 = __importDefault(require("./app"));
 const env_1 = require("./config/env");
 const logger_1 = require("./config/logger");
-const server = app_1.default.listen(env_1.env.PORT, () => {
-    logger_1.logger.info(`API listening on port ${env_1.env.PORT}`);
+const server = app_1.default.listen(env_1.env.PORT, '0.0.0.0', () => {
+    logger_1.logger.info(`API listening on port ${env_1.env.PORT} (host: 0.0.0.0)`);
 });
 function shutdown(signal) {
     logger_1.logger.warn(`Received ${signal}. Shutting down.`);
