@@ -4,6 +4,7 @@ import { NotFoundError } from "../../utils/errors";
 import { newsletterTemplate } from "../../utils/emailTemplates";
 import { sendMail } from "../../services/mailService";
 import { logAudit } from "../../services/auditService";
+import { env } from "../../config/env";
 
 export async function listSubscribers(_req: Request, res: Response) {
   const items = await prisma.subscriber.findMany({ orderBy: { createdAt: "desc" } });
@@ -23,7 +24,8 @@ export async function sendCampaign(req: Request, res: Response) {
   if (!campaign) throw new NotFoundError("Campaign not found");
 
   const subs = await prisma.subscriber.findMany();
-  const template = newsletterTemplate(campaign.subject, campaign.content);
+  const logoUrl = `${env.BASE_URL}/images/site/logo.png`;
+  const template = newsletterTemplate(campaign.subject, campaign.content, logoUrl);
 
   subs.forEach((s, idx) => {
     setTimeout(async () => {

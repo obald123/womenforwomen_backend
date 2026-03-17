@@ -5,6 +5,7 @@ import { NotFoundError } from "../../utils/errors";
 import { logAudit } from "../../services/auditService";
 import { sendMail } from "../../services/mailService";
 import { env } from "../../config/env";
+import { adminMessageTemplate } from "../../utils/emailTemplates";
 
 export async function createMessage(req: Request, res: Response) {
   const { name, email, phone, organization, message } = req.body as Record<string, string>;
@@ -17,29 +18,12 @@ export async function createMessage(req: Request, res: Response) {
       message,
     },
   });
-  const subject = `New partner message from ${name}`;
-  const text = [
-    `Name: ${name}`,
-    `Email: ${email}`,
-    phone ? `Phone: ${phone}` : null,
-    organization ? `Organization: ${organization}` : null,
-    "",
-    message,
-  ]
-    .filter(Boolean)
-    .join("\n");
-  const html = `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-      <h3>New Partner Message</h3>
-      <p><strong>Name:</strong> ${name}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      ${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ""}
-      ${organization ? `<p><strong>Organization:</strong> ${organization}</p>` : ""}
-      <p><strong>Message:</strong></p>
-      <p>${String(message).replace(/\n/g, "<br/>")}</p>
-    </div>
-  `;
-  await sendMail(env.ADMIN_EMAIL, subject, html, text);
+  const logoUrl = `${env.BASE_URL}/images/site/logo.png`;
+  const template = adminMessageTemplate(
+    { name, email, phone: phone || null, organization: organization || null, message },
+    logoUrl
+  );
+  await sendMail(env.ADMIN_EMAIL, template.subject, template.html, template.text);
   res.status(201).json({ success: true, data: item });
 }
 
