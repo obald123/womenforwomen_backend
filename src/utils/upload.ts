@@ -2,8 +2,11 @@ import multer from "multer";
 import { ValidationError } from "./errors";
 
 // Allow larger uploads so we can compress before sending to Cloudinary.
+// Keep images lower, but allow larger videos for gallery uploads.
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
+const MAX_GALLERY_FILE_SIZE = 200 * 1024 * 1024;
 const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const videoAllowed = ["video/mp4", "video/webm", "video/ogg", "video/quicktime", "video/x-matroska"];
 const docAllowed = [
   "application/pdf",
   "application/msword",
@@ -17,6 +20,17 @@ export const upload = multer({
   limits: { fileSize: MAX_FILE_SIZE },
   fileFilter: (_req, file, cb) => {
     if (!allowed.includes(file.mimetype)) {
+      return cb(new ValidationError("Invalid file type"));
+    }
+    cb(null, true);
+  },
+});
+
+export const uploadGallery = multer({
+  storage,
+  limits: { fileSize: MAX_GALLERY_FILE_SIZE },
+  fileFilter: (_req, file, cb) => {
+    if (![...allowed, ...videoAllowed].includes(file.mimetype)) {
       return cb(new ValidationError("Invalid file type"));
     }
     cb(null, true);

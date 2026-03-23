@@ -128,6 +128,7 @@ model Gallery {
   id          String        @id @default(cuid())
   title       String
   images      Json
+  videos      Json          @default("[]")
   layout      GalleryLayout @default(GRID)
   status      Status        @default(DRAFT)
   publishedAt DateTime?

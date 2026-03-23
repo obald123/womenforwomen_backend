@@ -6,6 +6,7 @@ import { toSlug } from "../../utils/slug";
 import { saveCloudImage } from "../../services/imageService";
 import { logAudit } from "../../services/auditService";
 import { Request, Response } from "express";
+import { ValidationError } from "../../utils/errors";
 
 async function uniqueSlug(base: string) {
   let slug = toSlug(base);
@@ -21,8 +22,17 @@ async function uniqueSlug(base: string) {
 
 export async function createArticle(req: Request, res: Response) {
   const { title, excerpt, content, category, status } = req.body as Record<string, string>;
+  const publishedAtRaw = (req.body as Record<string, string>).publishedAt;
   let slug = await uniqueSlug(title);
   const safeContent = sanitizeContent(content);
+  let publishedAt: Date | null = null;
+  if (publishedAtRaw) {
+    const parsed = new Date(publishedAtRaw);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new ValidationError("Invalid publishedAt date");
+    }
+    publishedAt = parsed;
+  }
 
   let coverImage: string | undefined;
   if (req.file) {
@@ -42,7 +52,7 @@ export async function createArticle(req: Request, res: Response) {
           category: category as any,
           status: (status as any) || "DRAFT",
           coverImage,
-          publishedAt: status === "PUBLISHED" ? new Date() : null,
+          publishedAt: status === "PUBLISHED" ? publishedAt ?? new Date() : publishedAt,
         },
       });
       break;
@@ -106,13 +116,20 @@ export async function updateArticle(req: Request, res: Response) {
   if (updates.content) {
     updates.content = sanitizeContent(updates.content);
   }
+  if (updates.publishedAt) {
+    const parsed = new Date(updates.publishedAt);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new ValidationError("Invalid publishedAt date");
+    }
+    (updates as any).publishedAt = parsed;
+  }
 
   if (req.file) {
     const saved = await saveCloudImage(req.file, "wfw/articles");
     updates.coverImage = saved.url;
   }
 
-  if (updates.status === "PUBLISHED" && !existing.publishedAt) {
+  if (updates.status === "PUBLISHED" && !existing.publishedAt && !updates.publishedAt) {
     updates.publishedAt = new Date().toISOString();
   }
 

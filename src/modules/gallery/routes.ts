@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth";
 import { validate } from "../../middleware/validate";
-import { upload } from "../../utils/upload";
+import { uploadGallery } from "../../utils/upload";
 import { createGallerySchema, listGallerySchema, updateGallerySchema } from "../../validators/gallery";
 import {
   createGallery,
@@ -17,7 +17,15 @@ const router = Router();
 
 router.use(requireAuth);
 
-router.post("/", upload.array("images", 10), validate(createGallerySchema), asyncHandler(createGallery));
+router.post(
+  "/",
+  uploadGallery.fields([
+    { name: "images", maxCount: 10 },
+    { name: "videos", maxCount: 5 },
+  ]),
+  validate(createGallerySchema),
+  asyncHandler(createGallery)
+);
 router.get("/", validate(listGallerySchema), asyncHandler(listGalleries));
 router.get("/:id", asyncHandler(getGallery));
 router.patch("/:id", validate(updateGallerySchema), asyncHandler(updateGallery));

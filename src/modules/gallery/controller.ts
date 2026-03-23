@@ -2,13 +2,14 @@ import { Request, Response } from "express";
 import { prisma } from "../../config/prisma";
 import { NotFoundError } from "../../utils/errors";
 import { parsePagination } from "../../utils/pagination";
-import { saveCloudImage } from "../../services/imageService";
+import { saveCloudImage, saveCloudVideo } from "../../services/imageService";
 import { logAudit } from "../../services/auditService";
 import { ValidationError } from "../../utils/errors";
 
 export async function createGallery(req: Request, res: Response) {
   const { title, layout, status } = req.body as Record<string, string>;
-  const files = req.files as Express.Multer.File[] | undefined;
+  const publishedAtRaw = (req.body as Record<string, string>).publishedAt;
+  const files = req.files as Record<string, Express.Multer.File[]> | undefined;
   let captions: string[] = [];
   if (req.body.captions) {
     try {
@@ -19,20 +20,38 @@ export async function createGallery(req: Request, res: Response) {
   }
 
   const images = [] as Array<{ url: string; caption?: string }>;
-  if (files?.length) {
-    for (let i = 0; i < files.length; i += 1) {
-      const saved = await saveCloudImage(files[i], "wfw/galleries");
+  const imageFiles = files?.images ?? [];
+  if (imageFiles.length) {
+    for (let i = 0; i < imageFiles.length; i += 1) {
+      const saved = await saveCloudImage(imageFiles[i], "wfw/galleries");
       images.push({ url: saved.url, caption: captions[i] });
     }
+  }
+  const videos = [] as Array<{ url: string; caption?: string }>;
+  const videoFiles = files?.videos ?? [];
+  if (videoFiles.length) {
+    for (let i = 0; i < videoFiles.length; i += 1) {
+      const saved = await saveCloudVideo(videoFiles[i], "wfw/galleries");
+      videos.push({ url: saved.url });
+    }
+  }
+  let publishedAt: Date | null = null;
+  if (publishedAtRaw) {
+    const parsed = new Date(publishedAtRaw);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new ValidationError("Invalid publishedAt date");
+    }
+    publishedAt = parsed;
   }
 
   const gallery = await prisma.gallery.create({
     data: {
       title,
       images,
+      videos,
       layout: (layout as any) || "GRID",
       status: (status as any) || "DRAFT",
-      publishedAt: status === "PUBLISHED" ? new Date() : null,
+      publishedAt: status === "PUBLISHED" ? publishedAt ?? new Date() : publishedAt,
     },
   });
 
@@ -72,6 +91,16 @@ export async function updateGallery(req: Request, res: Response) {
   if (!existing) throw new NotFoundError("Gallery not found");
 
   const updates = req.body as Record<string, string>;
+  if (updates.publishedAt) {
+    const parsed = new Date(updates.publishedAt);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new ValidationError("Invalid publishedAt date");
+    }
+    (updates as any).publishedAt = parsed;
+  }
+  if (updates.status === "PUBLISHED" && !existing.publishedAt && !updates.publishedAt) {
+    updates.publishedAt = new Date().toISOString();
+  }
   const item = await prisma.gallery.update({ where: { id }, data: updates as any });
   await logAudit("gallery.update", req.user?.id ?? null, { id: item.id });
   res.json({ success: true, data: item });
