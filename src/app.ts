@@ -18,6 +18,7 @@ import publicRoutes from "./modules/public/routes";
 import messageRoutes from "./modules/messages/routes";
 import searchRoutes from "./modules/search/routes";
 import jobRoutes from "./modules/jobs/routes";
+import uploadRoutes from "./modules/uploads/routes";
 
 const app = express();
 
@@ -51,6 +52,7 @@ app.use("/api/newsletter", adminLimiter, newsletterRoutes);
 app.use("/api/messages", adminLimiter, messageRoutes);
 app.use("/api/search", adminLimiter, searchRoutes);
 app.use("/api/jobs", adminLimiter, jobRoutes);
+app.use("/api/uploads", adminLimiter, uploadRoutes);
 app.use("/api/public", publicLimiter, publicRoutes);
 
 app.use(errorHandler);
