@@ -7,6 +7,11 @@ import { saveCloudImage } from "../../services/imageService";
 import { logAudit } from "../../services/auditService";
 import { Request, Response } from "express";
 import { ValidationError } from "../../utils/errors";
+import { cache } from "../../utils/cache";
+
+function invalidatePublicArticleCache(slug?: string) {
+  cache.clear();
+}
 
 async function uniqueSlug(base: string) {
   let slug = toSlug(base);
@@ -68,6 +73,7 @@ export async function createArticle(req: Request, res: Response) {
   if (!article) throw new Error("Failed to create article");
 
   await logAudit("article.create", req.user?.id ?? null, { id: article.id });
+  invalidatePublicArticleCache(article.slug);
   res.status(201).json({ success: true, data: article });
 }
 
@@ -139,6 +145,7 @@ export async function updateArticle(req: Request, res: Response) {
   });
 
   await logAudit("article.update", req.user?.id ?? null, { id: item.id });
+  invalidatePublicArticleCache(item.slug);
   res.json({ success: true, data: item });
 }
 
@@ -149,6 +156,7 @@ export async function deleteArticle(req: Request, res: Response) {
     data: { status: "ARCHIVED" },
   });
   await logAudit("article.archive", req.user?.id ?? null, { id });
+  invalidatePublicArticleCache();
   res.json({ success: true });
 }
 
@@ -159,5 +167,6 @@ export async function publishArticle(req: Request, res: Response) {
     data: { status: "PUBLISHED", publishedAt: new Date() },
   });
   await logAudit("article.publish", req.user?.id ?? null, { id: item.id });
+  invalidatePublicArticleCache(item.slug);
   res.json({ success: true, data: item });
 }

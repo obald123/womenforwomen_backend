@@ -115,7 +115,7 @@ async function compressVideoBuffer(buffer: Buffer): Promise<Buffer> {
       .videoFilters("scale='min(1280,iw)':-2")
       .format("mp4")
       .on("end", () => resolve())
-      .on("error", (err) => reject(err))
+      .on("error", (err: Error) => reject(err))
       .save(outputPath);
   });
 

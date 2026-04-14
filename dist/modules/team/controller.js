@@ -44,7 +44,12 @@ async function listTeam(req, res) {
     if (category)
         where.category = category;
     const [items, total] = await Promise.all([
-        prisma_1.prisma.teamMember.findMany({ where, skip, take, orderBy: { displayOrder: "asc" } }),
+        prisma_1.prisma.teamMember.findMany({
+            where,
+            skip,
+            take,
+            orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+        }),
         prisma_1.prisma.teamMember.count({ where }),
     ]);
     res.json({ success: true, data: items, total });

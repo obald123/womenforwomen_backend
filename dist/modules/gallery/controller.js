@@ -14,6 +14,7 @@ const auditService_1 = require("../../services/auditService");
 const errors_2 = require("../../utils/errors");
 async function createGallery(req, res) {
     const { title, layout, status } = req.body;
+    const publishedAtRaw = req.body.publishedAt;
     const files = req.files;
     let captions = [];
     if (req.body.captions) {
@@ -25,19 +26,37 @@ async function createGallery(req, res) {
         }
     }
     const images = [];
-    if (files?.length) {
-        for (let i = 0; i < files.length; i += 1) {
-            const saved = await (0, imageService_1.saveCloudImage)(files[i], "wfw/galleries");
+    const imageFiles = files?.images ?? [];
+    if (imageFiles.length) {
+        for (let i = 0; i < imageFiles.length; i += 1) {
+            const saved = await (0, imageService_1.saveCloudImage)(imageFiles[i], "wfw/galleries");
             images.push({ url: saved.url, caption: captions[i] });
         }
+    }
+    const videos = [];
+    const videoFiles = files?.videos ?? [];
+    if (videoFiles.length) {
+        for (let i = 0; i < videoFiles.length; i += 1) {
+            const saved = await (0, imageService_1.saveCloudVideo)(videoFiles[i], "wfw/galleries");
+            videos.push({ url: saved.url });
+        }
+    }
+    let publishedAt = null;
+    if (publishedAtRaw) {
+        const parsed = new Date(publishedAtRaw);
+        if (Number.isNaN(parsed.getTime())) {
+            throw new errors_2.ValidationError("Invalid publishedAt date");
+        }
+        publishedAt = parsed;
     }
     const gallery = await prisma_1.prisma.gallery.create({
         data: {
             title,
             images,
+            videos,
             layout: layout || "GRID",
             status: status || "DRAFT",
-            publishedAt: status === "PUBLISHED" ? new Date() : null,
+            publishedAt: status === "PUBLISHED" ? publishedAt ?? new Date() : publishedAt,
         },
     });
     await (0, auditService_1.logAudit)("gallery.create", req.user?.id ?? null, { id: gallery.id });
@@ -72,6 +91,16 @@ async function updateGallery(req, res) {
     if (!existing)
         throw new errors_1.NotFoundError("Gallery not found");
     const updates = req.body;
+    if (updates.publishedAt) {
+        const parsed = new Date(updates.publishedAt);
+        if (Number.isNaN(parsed.getTime())) {
+            throw new errors_2.ValidationError("Invalid publishedAt date");
+        }
+        updates.publishedAt = parsed;
+    }
+    if (updates.status === "PUBLISHED" && !existing.publishedAt && !updates.publishedAt) {
+        updates.publishedAt = new Date().toISOString();
+    }
     const item = await prisma_1.prisma.gallery.update({ where: { id }, data: updates });
     await (0, auditService_1.logAudit)("gallery.update", req.user?.id ?? null, { id: item.id });
     res.json({ success: true, data: item });

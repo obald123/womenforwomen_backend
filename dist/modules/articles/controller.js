@@ -13,6 +13,11 @@ const sanitize_1 = require("../../utils/sanitize");
 const slug_1 = require("../../utils/slug");
 const imageService_1 = require("../../services/imageService");
 const auditService_1 = require("../../services/auditService");
+const errors_2 = require("../../utils/errors");
+const cache_1 = require("../../utils/cache");
+function invalidatePublicArticleCache(slug) {
+    cache_1.cache.clear();
+}
 async function uniqueSlug(base) {
     let slug = (0, slug_1.toSlug)(base);
     let exists = await prisma_1.prisma.article.findUnique({ where: { slug } });
@@ -26,8 +31,17 @@ async function uniqueSlug(base) {
 }
 async function createArticle(req, res) {
     const { title, excerpt, content, category, status } = req.body;
+    const publishedAtRaw = req.body.publishedAt;
     let slug = await uniqueSlug(title);
     const safeContent = (0, sanitize_1.sanitizeContent)(content);
+    let publishedAt = null;
+    if (publishedAtRaw) {
+        const parsed = new Date(publishedAtRaw);
+        if (Number.isNaN(parsed.getTime())) {
+            throw new errors_2.ValidationError("Invalid publishedAt date");
+        }
+        publishedAt = parsed;
+    }
     let coverImage;
     if (req.file) {
         const saved = await (0, imageService_1.saveCloudImage)(req.file, "wfw/articles");
@@ -45,7 +59,7 @@ async function createArticle(req, res) {
                     category: category,
                     status: status || "DRAFT",
                     coverImage,
-                    publishedAt: status === "PUBLISHED" ? new Date() : null,
+                    publishedAt: status === "PUBLISHED" ? publishedAt ?? new Date() : publishedAt,
                 },
             });
             break;
@@ -61,6 +75,7 @@ async function createArticle(req, res) {
     if (!article)
         throw new Error("Failed to create article");
     await (0, auditService_1.logAudit)("article.create", req.user?.id ?? null, { id: article.id });
+    invalidatePublicArticleCache(article.slug);
     res.status(201).json({ success: true, data: article });
 }
 async function listArticles(req, res) {
@@ -106,11 +121,18 @@ async function updateArticle(req, res) {
     if (updates.content) {
         updates.content = (0, sanitize_1.sanitizeContent)(updates.content);
     }
+    if (updates.publishedAt) {
+        const parsed = new Date(updates.publishedAt);
+        if (Number.isNaN(parsed.getTime())) {
+            throw new errors_2.ValidationError("Invalid publishedAt date");
+        }
+        updates.publishedAt = parsed;
+    }
     if (req.file) {
         const saved = await (0, imageService_1.saveCloudImage)(req.file, "wfw/articles");
         updates.coverImage = saved.url;
     }
-    if (updates.status === "PUBLISHED" && !existing.publishedAt) {
+    if (updates.status === "PUBLISHED" && !existing.publishedAt && !updates.publishedAt) {
         updates.publishedAt = new Date().toISOString();
     }
     const item = await prisma_1.prisma.article.update({
@@ -118,6 +140,7 @@ async function updateArticle(req, res) {
         data: updates,
     });
     await (0, auditService_1.logAudit)("article.update", req.user?.id ?? null, { id: item.id });
+    invalidatePublicArticleCache(item.slug);
     res.json({ success: true, data: item });
 }
 async function deleteArticle(req, res) {
@@ -127,6 +150,7 @@ async function deleteArticle(req, res) {
         data: { status: "ARCHIVED" },
     });
     await (0, auditService_1.logAudit)("article.archive", req.user?.id ?? null, { id });
+    invalidatePublicArticleCache();
     res.json({ success: true });
 }
 async function publishArticle(req, res) {
@@ -136,6 +160,7 @@ async function publishArticle(req, res) {
         data: { status: "PUBLISHED", publishedAt: new Date() },
     });
     await (0, auditService_1.logAudit)("article.publish", req.user?.id ?? null, { id: item.id });
+    invalidatePublicArticleCache(item.slug);
     res.json({ success: true, data: item });
 }
 //# sourceMappingURL=controller.js.map
