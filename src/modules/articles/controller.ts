@@ -26,7 +26,7 @@ async function uniqueSlug(base: string) {
 }
 
 export async function createArticle(req: Request, res: Response) {
-  const { title, excerpt, content, category, status } = req.body as Record<string, string>;
+  const { title, excerpt, content, category, status, coverImageCaption, imagesMetadata } = req.body as Record<string, string>;
   const publishedAtRaw = (req.body as Record<string, string>).publishedAt;
   let slug = await uniqueSlug(title);
   const safeContent = sanitizeContent(content);
@@ -45,6 +45,15 @@ export async function createArticle(req: Request, res: Response) {
     coverImage = saved.url;
   }
 
+  let parsedImagesMetadata: any = [];
+  if (imagesMetadata) {
+    try {
+      parsedImagesMetadata = typeof imagesMetadata === "string" ? JSON.parse(imagesMetadata) : imagesMetadata;
+    } catch {
+      parsedImagesMetadata = [];
+    }
+  }
+
   let article;
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
@@ -57,6 +66,8 @@ export async function createArticle(req: Request, res: Response) {
           category: category as any,
           status: (status as any) || "DRAFT",
           coverImage,
+          coverImageCaption: coverImageCaption || null,
+          imagesMetadata: parsedImagesMetadata,
           publishedAt: status === "PUBLISHED" ? publishedAt ?? new Date() : publishedAt,
         },
       });
@@ -133,6 +144,15 @@ export async function updateArticle(req: Request, res: Response) {
   if (req.file) {
     const saved = await saveCloudImage(req.file, "wfw/articles");
     updates.coverImage = saved.url;
+  }
+
+  if (updates.imagesMetadata) {
+    try {
+      const parsed = typeof updates.imagesMetadata === "string" ? JSON.parse(updates.imagesMetadata) : updates.imagesMetadata;
+      (updates as any).imagesMetadata = parsed;
+    } catch {
+      (updates as any).imagesMetadata = [];
+    }
   }
 
   if (updates.status === "PUBLISHED" && !existing.publishedAt && !updates.publishedAt) {
