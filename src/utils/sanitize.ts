@@ -4,6 +4,8 @@ export function sanitizeContent(html: string) {
   return sanitizeHtml(html, {
     allowedTags: sanitizeHtml.defaults.allowedTags.concat([
       "img",
+      "figure",
+      "figcaption",
       "h1",
       "h2",
       "h3",
@@ -19,6 +21,7 @@ export function sanitizeContent(html: string) {
       ...sanitizeHtml.defaults.allowedAttributes,
       img: ["src", "alt"],
       a: ["href", "name", "target", "rel"],
+      figure: ["class"],
     },
   });
 }
