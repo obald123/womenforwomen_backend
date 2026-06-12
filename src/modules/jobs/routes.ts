@@ -33,7 +33,12 @@ router.post(
 );
 router.get("/", validate(listJobSchema), asyncHandler(listJobs));
 router.get("/:id", asyncHandler(getJob));
-router.patch("/:id", validate(updateJobSchema), asyncHandler(updateJob));
+router.patch(
+  "/:id",
+  uploadDocs.fields([{ name: "descriptionFile", maxCount: 1 }]),
+  validate(updateJobSchema),
+  asyncHandler(updateJob)
+);
 router.delete("/:id", asyncHandler(deleteJob));
 router.get("/:id/applications", asyncHandler(listApplications));
 router.patch("/applications/:id", validate(updateApplicationSchema), asyncHandler(updateApplication));

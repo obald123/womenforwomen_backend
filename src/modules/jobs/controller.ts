@@ -77,7 +77,16 @@ export async function updateJob(req: Request, res: Response) {
   const updates = req.body as any;
   if (updates.title) updates.slug = await uniqueSlug(updates.title);
   if (updates.dueDate === "") updates.dueDate = null;
-  if (updates.dueDate) updates.dueDate = new Date(updates.dueDate);
+  else if (updates.dueDate) updates.dueDate = new Date(updates.dueDate);
+
+  // Handle optional replacement of the description file
+  const descFile = (req.files as any)?.descriptionFile?.[0];
+  if (descFile) {
+    const uploaded = await saveCloudFile(descFile, "wfw/job-descriptions");
+    updates.descriptionFileUrl = uploaded.url;
+    updates.descriptionFileName = descFile.originalname || null;
+  }
+
   const item = await prisma.jobOpening.update({ where: { id }, data: updates });
   await logAudit("job.update", req.user?.id ?? null, { id: item.id });
   res.json({ success: true, data: item });
