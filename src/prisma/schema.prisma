@@ -213,18 +213,20 @@ model ContactMessage {
 }
 
 model JobOpening {
-  id           String    @id @default(cuid())
-  title        String
-  slug         String    @unique
-  department   String?
-  location     String?
-  employment   String?
-  description  String
-  requirements Json?
-  dueDate      DateTime?
-  status       JobStatus @default(OPEN)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                  String    @id @default(cuid())
+  title               String
+  slug                String    @unique
+  department          String?
+  location            String?
+  employment          String?
+  description         String
+  requirements        Json?
+  dueDate             DateTime?
+  status              JobStatus @default(OPEN)
+  descriptionFileUrl  String?
+  descriptionFileName String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   applications JobApplication[]
 

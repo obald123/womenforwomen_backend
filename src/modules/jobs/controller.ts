@@ -23,6 +23,16 @@ export async function createJob(req: Request, res: Response) {
   const { title, department, location, employment, description, requirements, status, dueDate } = req.body as any;
   const parsedDueDate = dueDate ? new Date(dueDate) : null;
   const slug = await uniqueSlug(title);
+
+  const descFile = (req.files as any)?.descriptionFile?.[0];
+  let descriptionFileUrl: string | null = null;
+  let descriptionFileName: string | null = null;
+  if (descFile) {
+    const uploaded = await saveCloudFile(descFile, "wfw/job-descriptions");
+    descriptionFileUrl = uploaded.url;
+    descriptionFileName = descFile.originalname || null;
+  }
+
   const job = await prisma.jobOpening.create({
     data: {
       title,
@@ -34,6 +44,8 @@ export async function createJob(req: Request, res: Response) {
       requirements: requirements || null,
       dueDate: parsedDueDate,
       status: status || "OPEN",
+      descriptionFileUrl,
+      descriptionFileName,
     },
   });
   await logAudit("job.create", req.user?.id ?? null, { id: job.id });
@@ -188,10 +200,10 @@ export async function publicJobs(req: Request, res: Response) {
 
 export async function publicJob(req: Request, res: Response) {
   const { slug } = req.params;
-  const now = new Date();
   const item = await prisma.jobOpening.findUnique({ where: { slug } });
+  // Return CLOSED status as 404, but expired-by-date jobs are still returned so the
+  // frontend can show "Applications Closed" with the full job info visible.
   if (!item || item.status !== "OPEN") return res.status(404).json({ success: false });
-  if (item.dueDate && item.dueDate < now) return res.status(404).json({ success: false });
   res.json({ success: true, data: item });
 }
 

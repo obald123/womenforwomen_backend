@@ -25,7 +25,12 @@ import {
 const router = Router();
 
 router.use(requireAuth);
-router.post("/", validate(createJobSchema), asyncHandler(createJob));
+router.post(
+  "/",
+  uploadDocs.fields([{ name: "descriptionFile", maxCount: 1 }]),
+  validate(createJobSchema),
+  asyncHandler(createJob)
+);
 router.get("/", validate(listJobSchema), asyncHandler(listJobs));
 router.get("/:id", asyncHandler(getJob));
 router.patch("/:id", validate(updateJobSchema), asyncHandler(updateJob));
