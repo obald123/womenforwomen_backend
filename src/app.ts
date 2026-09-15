@@ -19,6 +19,7 @@ import messageRoutes from "./modules/messages/routes";
 import searchRoutes from "./modules/search/routes";
 import jobRoutes from "./modules/jobs/routes";
 import uploadRoutes from "./modules/uploads/routes";
+import impactReportRoutes from "./modules/impactReports/routes";
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use("/api/messages", adminLimiter, messageRoutes);
 app.use("/api/search", adminLimiter, searchRoutes);
 app.use("/api/jobs", adminLimiter, jobRoutes);
 app.use("/api/uploads", adminLimiter, uploadRoutes);
+app.use("/api/impact-reports", adminLimiter, impactReportRoutes);
 app.use("/api/public", publicLimiter, publicRoutes);
 
 app.use(errorHandler);

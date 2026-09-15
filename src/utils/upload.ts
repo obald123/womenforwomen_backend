@@ -47,3 +47,21 @@ export const uploadDocs = multer({
     cb(null, true);
   },
 });
+
+// Report uploads: a document for the "file" field, plus an optional image cover.
+export const uploadReport = multer({
+  storage,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (_req, file, cb) => {
+    if (file.fieldname === "coverImage") {
+      if (!allowed.includes(file.mimetype)) {
+        return cb(new ValidationError("Invalid image type"));
+      }
+      return cb(null, true);
+    }
+    if (!docAllowed.includes(file.mimetype)) {
+      return cb(new ValidationError("Invalid document type"));
+    }
+    cb(null, true);
+  },
+});

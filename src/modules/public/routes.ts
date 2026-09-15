@@ -14,6 +14,7 @@ import {
 import { asyncHandler } from "../../utils/asyncHandler";
 import { publicMessageRouter } from "../messages/routes";
 import { publicJobRouter } from "../jobs/routes";
+import { publicImpactReportRouter } from "../impactReports/routes";
 
 const router = Router();
 
@@ -27,5 +28,6 @@ router.post("/subscribe", validate(subscribeSchema), asyncHandler(subscribe));
 router.get("/verify-subscription", asyncHandler(verifySubscription));
 router.use("/messages", publicMessageRouter);
 router.use("/jobs", publicJobRouter);
+router.use("/impact-reports", publicImpactReportRouter);
 
 export default router;
