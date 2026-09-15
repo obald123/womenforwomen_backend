@@ -30,7 +30,7 @@ async function uniqueSlug(base) {
     return slug;
 }
 async function createArticle(req, res) {
-    const { title, excerpt, content, category, status } = req.body;
+    const { title, excerpt, content, category, status, coverImageCaption, imagesMetadata } = req.body;
     const publishedAtRaw = req.body.publishedAt;
     let slug = await uniqueSlug(title);
     const safeContent = (0, sanitize_1.sanitizeContent)(content);
@@ -47,6 +47,15 @@ async function createArticle(req, res) {
         const saved = await (0, imageService_1.saveCloudImage)(req.file, "wfw/articles");
         coverImage = saved.url;
     }
+    let parsedImagesMetadata = [];
+    if (imagesMetadata) {
+        try {
+            parsedImagesMetadata = typeof imagesMetadata === "string" ? JSON.parse(imagesMetadata) : imagesMetadata;
+        }
+        catch {
+            parsedImagesMetadata = [];
+        }
+    }
     let article;
     for (let attempt = 0; attempt < 5; attempt += 1) {
         try {
@@ -59,6 +68,8 @@ async function createArticle(req, res) {
                     category: category,
                     status: status || "DRAFT",
                     coverImage,
+                    coverImageCaption: coverImageCaption || null,
+                    imagesMetadata: parsedImagesMetadata,
                     publishedAt: status === "PUBLISHED" ? publishedAt ?? new Date() : publishedAt,
                 },
             });
@@ -131,6 +142,15 @@ async function updateArticle(req, res) {
     if (req.file) {
         const saved = await (0, imageService_1.saveCloudImage)(req.file, "wfw/articles");
         updates.coverImage = saved.url;
+    }
+    if (updates.imagesMetadata) {
+        try {
+            const parsed = typeof updates.imagesMetadata === "string" ? JSON.parse(updates.imagesMetadata) : updates.imagesMetadata;
+            updates.imagesMetadata = parsed;
+        }
+        catch {
+            updates.imagesMetadata = [];
+        }
     }
     if (updates.status === "PUBLISHED" && !existing.publishedAt && !updates.publishedAt) {
         updates.publishedAt = new Date().toISOString();

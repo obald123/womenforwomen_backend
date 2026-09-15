@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.uploadDocs = exports.uploadGallery = exports.upload = void 0;
+exports.uploadReport = exports.uploadDocs = exports.uploadGallery = exports.upload = void 0;
 const multer_1 = __importDefault(require("multer"));
 const errors_1 = require("./errors");
 // Allow larger uploads so we can compress before sending to Cloudinary.
@@ -42,6 +42,23 @@ exports.uploadDocs = (0, multer_1.default)({
     storage,
     limits: { fileSize: MAX_FILE_SIZE },
     fileFilter: (_req, file, cb) => {
+        if (!docAllowed.includes(file.mimetype)) {
+            return cb(new errors_1.ValidationError("Invalid document type"));
+        }
+        cb(null, true);
+    },
+});
+// Report uploads: a document for the "file" field, plus an optional image cover.
+exports.uploadReport = (0, multer_1.default)({
+    storage,
+    limits: { fileSize: MAX_FILE_SIZE },
+    fileFilter: (_req, file, cb) => {
+        if (file.fieldname === "coverImage") {
+            if (!allowed.includes(file.mimetype)) {
+                return cb(new errors_1.ValidationError("Invalid image type"));
+            }
+            return cb(null, true);
+        }
         if (!docAllowed.includes(file.mimetype)) {
             return cb(new errors_1.ValidationError("Invalid document type"));
         }

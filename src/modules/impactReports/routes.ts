@@ -15,6 +15,7 @@ import {
   updateImpactReport,
   deleteImpactReport,
   publicImpactReports,
+  downloadImpactReport,
 } from "./controller";
 
 const reportFiles = uploadReport.fields([
@@ -33,5 +34,6 @@ router.delete("/:id", asyncHandler(deleteImpactReport));
 
 export const publicImpactReportRouter = Router();
 publicImpactReportRouter.get("/", asyncHandler(publicImpactReports));
+publicImpactReportRouter.get("/:id/download", asyncHandler(downloadImpactReport));
 
 export default router;

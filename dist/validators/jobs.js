@@ -5,14 +5,25 @@ const zod_1 = require("zod");
 const jobStatus = zod_1.z.enum(["OPEN", "CLOSED"]);
 const appStatus = zod_1.z.enum(["NEW", "REVIEWING", "SHORTLISTED", "REJECTED", "HIRED"]);
 const optionalUrl = zod_1.z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : v), zod_1.z.string().url().optional());
+const requirementsField = zod_1.z.preprocess((v) => {
+    if (typeof v === "string") {
+        try {
+            return JSON.parse(v);
+        }
+        catch {
+            return v.split("\n").filter(Boolean);
+        }
+    }
+    return v;
+}, zod_1.z.array(zod_1.z.string()).optional());
 exports.createJobSchema = zod_1.z.object({
     body: zod_1.z.object({
         title: zod_1.z.string().min(3),
         department: zod_1.z.string().optional(),
         location: zod_1.z.string().optional(),
         employment: zod_1.z.string().optional(),
-        description: zod_1.z.string().min(20),
-        requirements: zod_1.z.array(zod_1.z.string()).optional(),
+        description: zod_1.z.string().min(10),
+        requirements: requirementsField,
         dueDate: zod_1.z.coerce.date().optional(),
         status: jobStatus.optional(),
     }),
@@ -23,8 +34,8 @@ exports.updateJobSchema = zod_1.z.object({
         department: zod_1.z.string().optional(),
         location: zod_1.z.string().optional(),
         employment: zod_1.z.string().optional(),
-        description: zod_1.z.string().min(20).optional(),
-        requirements: zod_1.z.array(zod_1.z.string()).optional(),
+        description: zod_1.z.string().min(10).optional(),
+        requirements: requirementsField,
         dueDate: zod_1.z.coerce.date().optional(),
         status: jobStatus.optional(),
     }),

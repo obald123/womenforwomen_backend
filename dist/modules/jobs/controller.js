@@ -37,6 +37,14 @@ async function createJob(req, res) {
     const { title, department, location, employment, description, requirements, status, dueDate } = req.body;
     const parsedDueDate = dueDate ? new Date(dueDate) : null;
     const slug = await uniqueSlug(title);
+    const descFile = req.files?.descriptionFile?.[0];
+    let descriptionFileUrl = null;
+    let descriptionFileName = null;
+    if (descFile) {
+        const uploaded = await (0, imageService_1.saveCloudFile)(descFile, "wfw/job-descriptions");
+        descriptionFileUrl = uploaded.url;
+        descriptionFileName = descFile.originalname || null;
+    }
     const job = await prisma_1.prisma.jobOpening.create({
         data: {
             title,
@@ -48,6 +56,8 @@ async function createJob(req, res) {
             requirements: requirements || null,
             dueDate: parsedDueDate,
             status: status || "OPEN",
+            descriptionFileUrl,
+            descriptionFileName,
         },
     });
     await (0, auditService_1.logAudit)("job.create", req.user?.id ?? null, { id: job.id });
@@ -79,8 +89,15 @@ async function updateJob(req, res) {
         updates.slug = await uniqueSlug(updates.title);
     if (updates.dueDate === "")
         updates.dueDate = null;
-    if (updates.dueDate)
+    else if (updates.dueDate)
         updates.dueDate = new Date(updates.dueDate);
+    // Handle optional replacement of the description file
+    const descFile = req.files?.descriptionFile?.[0];
+    if (descFile) {
+        const uploaded = await (0, imageService_1.saveCloudFile)(descFile, "wfw/job-descriptions");
+        updates.descriptionFileUrl = uploaded.url;
+        updates.descriptionFileName = descFile.originalname || null;
+    }
     const item = await prisma_1.prisma.jobOpening.update({ where: { id }, data: updates });
     await (0, auditService_1.logAudit)("job.update", req.user?.id ?? null, { id: item.id });
     res.json({ success: true, data: item });
@@ -188,11 +205,10 @@ async function publicJobs(req, res) {
 }
 async function publicJob(req, res) {
     const { slug } = req.params;
-    const now = new Date();
     const item = await prisma_1.prisma.jobOpening.findUnique({ where: { slug } });
+    // Return CLOSED status as 404, but expired-by-date jobs are still returned so the
+    // frontend can show "Applications Closed" with the full job info visible.
     if (!item || item.status !== "OPEN")
-        return res.status(404).json({ success: false });
-    if (item.dueDate && item.dueDate < now)
         return res.status(404).json({ success: false });
     res.json({ success: true, data: item });
 }

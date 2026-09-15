@@ -7,6 +7,7 @@ const controller_1 = require("./controller");
 const asyncHandler_1 = require("../../utils/asyncHandler");
 const routes_1 = require("../messages/routes");
 const routes_2 = require("../jobs/routes");
+const routes_3 = require("../impactReports/routes");
 const router = (0, express_1.Router)();
 router.get("/articles", (0, asyncHandler_1.asyncHandler)(controller_1.publicArticles));
 router.get("/articles/:slug", (0, asyncHandler_1.asyncHandler)(controller_1.publicArticle));
@@ -18,5 +19,6 @@ router.post("/subscribe", (0, validate_1.validate)(newsletter_1.subscribeSchema)
 router.get("/verify-subscription", (0, asyncHandler_1.asyncHandler)(controller_1.verifySubscription));
 router.use("/messages", routes_1.publicMessageRouter);
 router.use("/jobs", routes_2.publicJobRouter);
+router.use("/impact-reports", routes_3.publicImpactReportRouter);
 exports.default = router;
 //# sourceMappingURL=routes.js.map

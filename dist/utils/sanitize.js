@@ -9,6 +9,8 @@ function sanitizeContent(html) {
     return (0, sanitize_html_1.default)(html, {
         allowedTags: sanitize_html_1.default.defaults.allowedTags.concat([
             "img",
+            "figure",
+            "figcaption",
             "h1",
             "h2",
             "h3",
@@ -24,6 +26,7 @@ function sanitizeContent(html) {
             ...sanitize_html_1.default.defaults.allowedAttributes,
             img: ["src", "alt"],
             a: ["href", "name", "target", "rel"],
+            figure: ["class"],
         },
     });
 }
