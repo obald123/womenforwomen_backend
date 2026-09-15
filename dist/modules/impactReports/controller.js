@@ -13,6 +13,17 @@ const errors_1 = require("../../utils/errors");
 const pagination_1 = require("../../utils/pagination");
 const imageService_1 = require("../../services/imageService");
 const auditService_1 = require("../../services/auditService");
+const subscriberNotifyService_1 = require("../../services/subscriberNotifyService");
+const env_1 = require("../../config/env");
+const logger_1 = require("../../config/logger");
+function notifyReportPublished(report) {
+    (0, subscriberNotifyService_1.notifySubscribersOfNewContent)({
+        kicker: "New Impact Report",
+        title: report.title,
+        excerpt: report.description,
+        url: `${env_1.env.BASE_URL}/impact#impact-reports`,
+    }).catch((err) => logger_1.logger.error("Failed to notify subscribers of new report", { error: err.message }));
+}
 const EXT_CONTENT_TYPES = {
     ".pdf": "application/pdf",
     ".doc": "application/msword",
@@ -58,6 +69,8 @@ async function createImpactReport(req, res) {
         },
     });
     await (0, auditService_1.logAudit)("impactReport.create", req.user?.id ?? null, { id: report.id });
+    if (report.status === "PUBLISHED")
+        notifyReportPublished(report);
     res.status(201).json({ success: true, data: report });
 }
 async function listImpactReports(req, res) {
@@ -117,6 +130,8 @@ async function updateImpactReport(req, res) {
     }
     const item = await prisma_1.prisma.impactReport.update({ where: { id }, data: updates });
     await (0, auditService_1.logAudit)("impactReport.update", req.user?.id ?? null, { id: item.id });
+    if (existing.status !== "PUBLISHED" && item.status === "PUBLISHED")
+        notifyReportPublished(item);
     res.json({ success: true, data: item });
 }
 async function deleteImpactReport(req, res) {

@@ -13,8 +13,25 @@ const sanitize_1 = require("../../utils/sanitize");
 const slug_1 = require("../../utils/slug");
 const imageService_1 = require("../../services/imageService");
 const auditService_1 = require("../../services/auditService");
+const subscriberNotifyService_1 = require("../../services/subscriberNotifyService");
+const env_1 = require("../../config/env");
+const logger_1 = require("../../config/logger");
 const errors_2 = require("../../utils/errors");
 const cache_1 = require("../../utils/cache");
+const CATEGORY_KICKER = {
+    NEWS: "News Update",
+    STORY: "New Story",
+    PRESS: "Press Release",
+    BLOG: "New Post",
+};
+function notifyArticlePublished(article) {
+    (0, subscriberNotifyService_1.notifySubscribersOfNewContent)({
+        kicker: CATEGORY_KICKER[article.category] || "New Story",
+        title: article.title,
+        excerpt: article.excerpt,
+        url: `${env_1.env.BASE_URL}/news/${article.slug}`,
+    }).catch((err) => logger_1.logger.error("Failed to notify subscribers of new article", { error: err.message }));
+}
 function invalidatePublicArticleCache(slug) {
     cache_1.cache.clear();
 }
@@ -87,6 +104,8 @@ async function createArticle(req, res) {
         throw new Error("Failed to create article");
     await (0, auditService_1.logAudit)("article.create", req.user?.id ?? null, { id: article.id });
     invalidatePublicArticleCache(article.slug);
+    if (article.status === "PUBLISHED")
+        notifyArticlePublished(article);
     res.status(201).json({ success: true, data: article });
 }
 async function listArticles(req, res) {
@@ -161,6 +180,8 @@ async function updateArticle(req, res) {
     });
     await (0, auditService_1.logAudit)("article.update", req.user?.id ?? null, { id: item.id });
     invalidatePublicArticleCache(item.slug);
+    if (existing.status !== "PUBLISHED" && item.status === "PUBLISHED")
+        notifyArticlePublished(item);
     res.json({ success: true, data: item });
 }
 async function deleteArticle(req, res) {
@@ -175,12 +196,15 @@ async function deleteArticle(req, res) {
 }
 async function publishArticle(req, res) {
     const { id } = req.params;
+    const existing = await prisma_1.prisma.article.findUnique({ where: { id } });
     const item = await prisma_1.prisma.article.update({
         where: { id },
         data: { status: "PUBLISHED", publishedAt: new Date() },
     });
     await (0, auditService_1.logAudit)("article.publish", req.user?.id ?? null, { id: item.id });
     invalidatePublicArticleCache(item.slug);
+    if (existing && existing.status !== "PUBLISHED")
+        notifyArticlePublished(item);
     res.json({ success: true, data: item });
 }
 //# sourceMappingURL=controller.js.map

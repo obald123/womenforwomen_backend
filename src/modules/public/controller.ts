@@ -6,6 +6,8 @@ import crypto from "crypto";
 import { env } from "../../config/env";
 import { sendMail } from "../../services/mailService";
 import { verificationEmailTemplate } from "../../utils/emailTemplates";
+import { sendWelcomeDigest } from "../../services/subscriberNotifyService";
+import { logger } from "../../config/logger";
 
 const CACHE_TTL = 60 * 1000;
 
@@ -160,6 +162,12 @@ export async function verifySubscription(req: Request, res: Response) {
     where: { id: sub.id },
     data: { verified: true, verifyToken: null },
   });
+
+  if (!sub.verified) {
+    sendWelcomeDigest(sub.email).catch((err) =>
+      logger.error("Failed to send welcome digest", { email: sub.email, error: (err as Error).message })
+    );
+  }
 
   res.send(`<!doctype html>
 <html lang="en">

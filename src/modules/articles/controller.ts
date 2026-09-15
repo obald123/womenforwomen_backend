@@ -5,9 +5,28 @@ import { sanitizeContent } from "../../utils/sanitize";
 import { toSlug } from "../../utils/slug";
 import { saveCloudImage } from "../../services/imageService";
 import { logAudit } from "../../services/auditService";
+import { notifySubscribersOfNewContent } from "../../services/subscriberNotifyService";
+import { env } from "../../config/env";
+import { logger } from "../../config/logger";
 import { Request, Response } from "express";
 import { ValidationError } from "../../utils/errors";
 import { cache } from "../../utils/cache";
+
+const CATEGORY_KICKER: Record<string, string> = {
+  NEWS: "News Update",
+  STORY: "New Story",
+  PRESS: "Press Release",
+  BLOG: "New Post",
+};
+
+function notifyArticlePublished(article: { title: string; slug: string; excerpt: string; category: string }) {
+  notifySubscribersOfNewContent({
+    kicker: CATEGORY_KICKER[article.category] || "New Story",
+    title: article.title,
+    excerpt: article.excerpt,
+    url: `${env.BASE_URL}/news/${article.slug}`,
+  }).catch((err) => logger.error("Failed to notify subscribers of new article", { error: (err as Error).message }));
+}
 
 function invalidatePublicArticleCache(slug?: string) {
   cache.clear();
@@ -85,6 +104,7 @@ export async function createArticle(req: Request, res: Response) {
 
   await logAudit("article.create", req.user?.id ?? null, { id: article.id });
   invalidatePublicArticleCache(article.slug);
+  if (article.status === "PUBLISHED") notifyArticlePublished(article);
   res.status(201).json({ success: true, data: article });
 }
 
@@ -166,6 +186,7 @@ export async function updateArticle(req: Request, res: Response) {
 
   await logAudit("article.update", req.user?.id ?? null, { id: item.id });
   invalidatePublicArticleCache(item.slug);
+  if (existing.status !== "PUBLISHED" && item.status === "PUBLISHED") notifyArticlePublished(item);
   res.json({ success: true, data: item });
 }
 
@@ -182,11 +203,13 @@ export async function deleteArticle(req: Request, res: Response) {
 
 export async function publishArticle(req: Request, res: Response) {
   const { id } = req.params;
+  const existing = await prisma.article.findUnique({ where: { id } });
   const item = await prisma.article.update({
     where: { id },
     data: { status: "PUBLISHED", publishedAt: new Date() },
   });
   await logAudit("article.publish", req.user?.id ?? null, { id: item.id });
   invalidatePublicArticleCache(item.slug);
+  if (existing && existing.status !== "PUBLISHED") notifyArticlePublished(item);
   res.json({ success: true, data: item });
 }

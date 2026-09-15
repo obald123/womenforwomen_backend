@@ -18,6 +18,8 @@ const crypto_1 = __importDefault(require("crypto"));
 const env_1 = require("../../config/env");
 const mailService_1 = require("../../services/mailService");
 const emailTemplates_1 = require("../../utils/emailTemplates");
+const subscriberNotifyService_1 = require("../../services/subscriberNotifyService");
+const logger_1 = require("../../config/logger");
 const CACHE_TTL = 60 * 1000;
 async function publicArticles(req, res) {
     const key = `public:articles:${JSON.stringify(req.query)}`;
@@ -153,6 +155,9 @@ async function verifySubscription(req, res) {
         where: { id: sub.id },
         data: { verified: true, verifyToken: null },
     });
+    if (!sub.verified) {
+        (0, subscriberNotifyService_1.sendWelcomeDigest)(sub.email).catch((err) => logger_1.logger.error("Failed to send welcome digest", { email: sub.email, error: err.message }));
+    }
     res.send(`<!doctype html>
 <html lang="en">
   <head>

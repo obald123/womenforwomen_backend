@@ -5,6 +5,18 @@ import { NotFoundError, ValidationError } from "../../utils/errors";
 import { parsePagination } from "../../utils/pagination";
 import { saveCloudFile, saveCloudImage } from "../../services/imageService";
 import { logAudit } from "../../services/auditService";
+import { notifySubscribersOfNewContent } from "../../services/subscriberNotifyService";
+import { env } from "../../config/env";
+import { logger } from "../../config/logger";
+
+function notifyReportPublished(report: { title: string; description: string | null }) {
+  notifySubscribersOfNewContent({
+    kicker: "New Impact Report",
+    title: report.title,
+    excerpt: report.description,
+    url: `${env.BASE_URL}/impact#impact-reports`,
+  }).catch((err) => logger.error("Failed to notify subscribers of new report", { error: (err as Error).message }));
+}
 
 const EXT_CONTENT_TYPES: Record<string, string> = {
   ".pdf": "application/pdf",
@@ -57,6 +69,7 @@ export async function createImpactReport(req: Request, res: Response) {
   });
 
   await logAudit("impactReport.create", req.user?.id ?? null, { id: report.id });
+  if (report.status === "PUBLISHED") notifyReportPublished(report);
   res.status(201).json({ success: true, data: report });
 }
 
@@ -119,6 +132,7 @@ export async function updateImpactReport(req: Request, res: Response) {
 
   const item = await prisma.impactReport.update({ where: { id }, data: updates });
   await logAudit("impactReport.update", req.user?.id ?? null, { id: item.id });
+  if (existing.status !== "PUBLISHED" && item.status === "PUBLISHED") notifyReportPublished(item);
   res.json({ success: true, data: item });
 }
 

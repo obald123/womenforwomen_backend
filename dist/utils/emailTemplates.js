@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.verificationEmailTemplate = verificationEmailTemplate;
 exports.resetPasswordTemplate = resetPasswordTemplate;
 exports.newsletterTemplate = newsletterTemplate;
+exports.newContentAlertTemplate = newContentAlertTemplate;
+exports.welcomeDigestTemplate = welcomeDigestTemplate;
 exports.adminMessageTemplate = adminMessageTemplate;
 function baseEmailTemplate(title, preheader, bodyHtml) {
     return `
@@ -83,6 +85,60 @@ function newsletterTemplate(subject, body, logoUrl) {
         subject,
         html: baseEmailTemplate(subject, "Latest updates from Women for Women Rwanda.", `<div style="font-size:14px; color:#26302F; line-height:1.7;">${body}</div>`).replace("{{LOGO_URL}}", logoUrl),
         text: body,
+    };
+}
+function newContentAlertTemplate(payload, logoUrl) {
+    const { kicker, title, excerpt, url } = payload;
+    const body = `
+    <div style="font-size:10px; letter-spacing:0.25em; text-transform:uppercase; color:#00A991; font-weight:700; margin:0 0 10px;">
+      ${kicker}
+    </div>
+    <h2 style="margin:0 0 12px; font-size:20px; line-height:1.3; color:#0D2323;">${title}</h2>
+    ${excerpt ? `<p style="margin:0 0 18px; font-size:14px; color:#26302F; line-height:1.7;">${excerpt}</p>` : ""}
+    <a href="${url}" style="display:inline-block; background:#00A991; color:#ffffff; text-decoration:none; padding:12px 18px; font-size:12px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase;">
+      Read More
+    </a>
+  `;
+    return {
+        subject: `${kicker}: ${title}`,
+        html: baseEmailTemplate(kicker, "New content is now live on our site.", body).replace("{{LOGO_URL}}", logoUrl),
+        text: `${kicker}: ${title}\n${excerpt || ""}\n${url}`,
+    };
+}
+function welcomeDigestTemplate(payload, logoUrl) {
+    const { articles, reports } = payload;
+    const listHtml = (items) => items
+        .map((item) => `
+      <li style="margin:0 0 10px; font-size:14px; color:#26302F;">
+        <a href="${item.url}" style="color:#0D2323; text-decoration:underline;">${item.title}</a>
+      </li>`)
+        .join("");
+    const body = `
+    <p style="margin:0 0 18px; font-size:14px; color:#26302F; line-height:1.7;">
+      Thanks for subscribing! You'll now hear about every new story, news update, and impact report
+      as soon as it's published. In the meantime, here's what you may have missed:
+    </p>
+    ${articles.length
+        ? `<div style="font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:#00A991; font-weight:700; margin:0 0 10px;">Recent News &amp; Stories</div>
+           <ul style="margin:0 0 22px; padding-left:18px;">${listHtml(articles)}</ul>`
+        : ""}
+    ${reports.length
+        ? `<div style="font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:#00A991; font-weight:700; margin:0 0 10px;">Impact Reports</div>
+           <ul style="margin:0 0 22px; padding-left:18px;">${listHtml(reports)}</ul>`
+        : ""}
+  `;
+    return {
+        subject: "Welcome to Women for Women Rwanda",
+        html: baseEmailTemplate("Welcome", "You're subscribed to our updates.", body).replace("{{LOGO_URL}}", logoUrl),
+        text: [
+            "Welcome to Women for Women Rwanda!",
+            articles.length ? "Recent News & Stories:" : "",
+            ...articles.map((a) => `- ${a.title}: ${a.url}`),
+            reports.length ? "Impact Reports:" : "",
+            ...reports.map((r) => `- ${r.title}: ${r.url}`),
+        ]
+            .filter(Boolean)
+            .join("\n"),
     };
 }
 function adminMessageTemplate(payload, logoUrl) {
