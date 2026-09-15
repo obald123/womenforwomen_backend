@@ -23,6 +23,12 @@ import impactReportRoutes from "./modules/impactReports/routes";
 
 const app = express();
 
+// Render (and most PaaS hosts) sit the app behind one reverse proxy hop, which
+// sets X-Forwarded-For. Without this, express-rate-limit refuses to trust that
+// header (ERR_ERL_UNEXPECTED_X_FORWARDED_FOR) and req.ip falls back to the
+// proxy's own IP, making per-client rate limiting ineffective.
+app.set("trust proxy", 1);
+
 app.use(helmet());
 app.use(compression());
 app.use(cookieParser());
