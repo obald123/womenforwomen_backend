@@ -12,7 +12,7 @@ function baseEmailTemplate(title: string, preheader: string, bodyHtml: string) {
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px; margin:0 auto; background:#ffffff; border:1px solid #E7ECEB;">
           <tr>
             <td style="padding:28px 28px 0;">
-              <img src="{{LOGO_URL}}" alt="Women for Women Rwanda" width="140" style="display:block; height:auto;" />
+              <img src="cid:wfwlogo" alt="Women for Women Rwanda" width="140" style="display:block; height:auto;" />
               <div style="font-size:10px; letter-spacing:0.3em; text-transform:uppercase; color:#00A991; font-weight:700; margin-top:12px;">
                 Women for Women Rwanda
               </div>
@@ -31,7 +31,7 @@ function baseEmailTemplate(title: string, preheader: string, bodyHtml: string) {
           </tr>
           <tr>
             <td style="padding:18px 28px; background:#0B1E1A; color:#B9D0CC; font-size:11px;">
-              Women for Women Rwanda â€¢ Kigali, Rwanda
+              Women for Women Rwanda &bull; Kigali, Rwanda
             </td>
           </tr>
         </table>
@@ -41,7 +41,7 @@ function baseEmailTemplate(title: string, preheader: string, bodyHtml: string) {
   `;
 }
 
-export function verificationEmailTemplate(link: string, logoUrl: string) {
+export function verificationEmailTemplate(link: string) {
   const body = `
     <p style="margin:0 0 16px; font-size:14px; color:#26302F;">
       Please confirm your subscription to receive our latest news, success stories, and program updates.
@@ -55,12 +55,12 @@ export function verificationEmailTemplate(link: string, logoUrl: string) {
   `;
   return {
     subject: "Confirm your subscription",
-    html: baseEmailTemplate("Confirm Subscription", "Please confirm your subscription.", body).replace("{{LOGO_URL}}", logoUrl),
+    html: baseEmailTemplate("Confirm Subscription", "Please confirm your subscription.", body),
     text: `Confirm your subscription: ${link}`,
   };
 }
 
-export function resetPasswordTemplate(link: string, logoUrl: string) {
+export function resetPasswordTemplate(link: string) {
   return {
     subject: "Reset your password",
     html: baseEmailTemplate(
@@ -74,26 +74,25 @@ export function resetPasswordTemplate(link: string, logoUrl: string) {
         Reset Password
       </a>
     `
-    ).replace("{{LOGO_URL}}", logoUrl),
+    ),
     text: `Reset your password: ${link}`,
   };
 }
 
-export function newsletterTemplate(subject: string, body: string, logoUrl: string) {
+export function newsletterTemplate(subject: string, body: string) {
   return {
     subject,
     html: baseEmailTemplate(
       subject,
       "Latest updates from Women for Women Rwanda.",
       `<div style="font-size:14px; color:#26302F; line-height:1.7;">${body}</div>`
-    ).replace("{{LOGO_URL}}", logoUrl),
+    ),
     text: body,
   };
 }
 
 export function newContentAlertTemplate(
-  payload: { kicker: string; title: string; excerpt?: string | null; url: string },
-  logoUrl: string
+  payload: { kicker: string; title: string; excerpt?: string | null; url: string }
 ) {
   const { kicker, title, excerpt, url } = payload;
   const body = `
@@ -108,7 +107,7 @@ export function newContentAlertTemplate(
   `;
   return {
     subject: `${kicker}: ${title}`,
-    html: baseEmailTemplate(kicker, "New content is now live on our site.", body).replace("{{LOGO_URL}}", logoUrl),
+    html: baseEmailTemplate(kicker, "New content is now live on our site.", body),
     text: `${kicker}: ${title}\n${excerpt || ""}\n${url}`,
   };
 }
@@ -117,8 +116,7 @@ export function welcomeDigestTemplate(
   payload: {
     articles: { title: string; url: string }[];
     reports: { title: string; url: string }[];
-  },
-  logoUrl: string
+  }
 ) {
   const { articles, reports } = payload;
 
@@ -152,7 +150,7 @@ export function welcomeDigestTemplate(
   `;
   return {
     subject: "Welcome to Women for Women Rwanda",
-    html: baseEmailTemplate("Welcome", "You're subscribed to our updates.", body).replace("{{LOGO_URL}}", logoUrl),
+    html: baseEmailTemplate("Welcome", "You're subscribed to our updates.", body),
     text: [
       "Welcome to Women for Women Rwanda!",
       articles.length ? "Recent News & Stories:" : "",
@@ -171,7 +169,7 @@ export function adminMessageTemplate(payload: {
   phone?: string | null;
   organization?: string | null;
   message: string;
-}, logoUrl: string) {
+}) {
   const { name, email, phone, organization, message } = payload;
   const body = `
     <p style="margin:0 0 12px; font-size:14px; color:#26302F;">
@@ -188,7 +186,7 @@ export function adminMessageTemplate(payload: {
   `;
   return {
     subject: `New partner message from ${name}`,
-    html: baseEmailTemplate("New Partner Message", "A new message was sent from the partner page.", body).replace("{{LOGO_URL}}", logoUrl),
+    html: baseEmailTemplate("New Partner Message", "A new message was sent from the partner page.", body),
     text: [
       `Name: ${name}`,
       `Email: ${email}`,

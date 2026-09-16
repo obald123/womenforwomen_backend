@@ -18,11 +18,13 @@ export async function createMessage(req: Request, res: Response) {
       message,
     },
   });
-  const logoUrl = `${env.BASE_URL}/images/site/logo.png`;
-  const template = adminMessageTemplate(
-    { name, email, phone: phone || null, organization: organization || null, message },
-    logoUrl
-  );
+  const template = adminMessageTemplate({
+    name,
+    email,
+    phone: phone || null,
+    organization: organization || null,
+    message,
+  });
   await sendMail(env.ADMIN_EMAIL, template.subject, template.html, template.text);
   res.status(201).json({ success: true, data: item });
 }

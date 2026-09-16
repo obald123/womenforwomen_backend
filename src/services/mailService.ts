@@ -1,6 +1,14 @@
+import path from "path";
 import { mailer } from "../config/mail";
 import { env } from "../config/env";
 import { logger } from "../config/logger";
+
+// Referencing the logo by URL only works if that URL is publicly reachable — a
+// localhost BASE_URL (or any dev URL) is invisible to a recipient's email client.
+// Shipping it as an inline CID attachment instead makes it render everywhere,
+// regardless of environment.
+const LOGO_PATH = path.join(process.cwd(), "assets", "email-logo.png");
+const LOGO_CID = "wfwlogo";
 
 export async function sendMail(to: string, subject: string, html: string, text: string) {
   const isDevPlaceholder =
@@ -17,6 +25,7 @@ export async function sendMail(to: string, subject: string, html: string, text: 
       subject,
       html,
       text,
+      attachments: [{ filename: "logo.png", path: LOGO_PATH, cid: LOGO_CID }],
     });
   } catch (err) {
     if (env.NODE_ENV !== "production") {

@@ -68,8 +68,7 @@ export async function requestPasswordReset(req: Request, res: Response) {
   });
 
   const link = `${env.BASE_URL}/reset-password?token=${rawToken}`;
-  const logoUrl = `${env.BASE_URL}/images/site/logo.png`;
-  const template = resetPasswordTemplate(link, logoUrl);
+  const template = resetPasswordTemplate(link);
   await sendMail(user.email, template.subject, template.html, template.text);
 
   res.json({ success: true });
