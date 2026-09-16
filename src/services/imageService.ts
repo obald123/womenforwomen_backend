@@ -1,7 +1,7 @@
 import { v2 as cloudinary } from "cloudinary";
 import sharp from "sharp";
 import { env } from "../config/env";
-import { ValidationError } from "../utils/errors";
+import { AppError, ValidationError } from "../utils/errors";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegPath from "ffmpeg-static";
 import fs from "fs/promises";
@@ -20,11 +20,16 @@ cloudinary.config({
 });
 
 export async function saveCloudImage(file: Express.Multer.File, folder: string) {
-  const processed = await sharp(file.buffer)
-    .rotate()
-    .resize({ width: 2000, withoutEnlargement: true })
-    .jpeg({ quality: 80, mozjpeg: true })
-    .toBuffer();
+  let processed: Buffer;
+  try {
+    processed = await sharp(file.buffer)
+      .rotate()
+      .resize({ width: 2000, withoutEnlargement: true })
+      .jpeg({ quality: 80, mozjpeg: true })
+      .toBuffer();
+  } catch {
+    throw new ValidationError("That image file is invalid or corrupted. Please upload a different image.");
+  }
 
   if (processed.length > 10 * 1024 * 1024) {
     throw new ValidationError("Compressed image is still above 10MB. Please upload a smaller image.");
@@ -71,11 +76,17 @@ export async function saveCloudFile(file: Express.Multer.File, folder: string) {
 }
 
 // Cloudinary rejects oversized uploads (e.g. raw files over this account's plan limit)
-// with its own "File size too large" error, which otherwise surfaces as an opaque 500.
+// with its own "File size too large" error, and separately aborts the request client-side
+// after 60s with a "Request Timeout" error if its API is slow to respond — both otherwise
+// surface as an opaque 500.
 function toUploadError(error: unknown): Error {
-  const message = (error as { message?: string } | undefined)?.message;
+  const message = (error as { message?: string; name?: string } | undefined)?.message;
+  const name = (error as { message?: string; name?: string } | undefined)?.name;
   if (message && /file size too large/i.test(message)) {
     return new ValidationError("This file is too large for our file host. Please upload a smaller file.");
+  }
+  if (name === "TimeoutError" || (message && /request timeout/i.test(message))) {
+    return new AppError("The file host took too long to respond. Please try again.", 504);
   }
   return (error as Error | undefined) ?? new Error("Cloudinary upload failed");
 }
