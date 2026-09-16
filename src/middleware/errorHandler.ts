@@ -11,7 +11,7 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     const code = (err as any)?.code;
     if (code === "LIMIT_FILE_SIZE") {
       status = 413;
-      message = "File too large (max 10MB)";
+      message = "File too large";
     } else {
       status = 400;
       message = "Invalid upload";

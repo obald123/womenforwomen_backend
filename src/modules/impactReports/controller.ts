@@ -3,11 +3,18 @@ import { Readable } from "stream";
 import { prisma } from "../../config/prisma";
 import { NotFoundError, ValidationError } from "../../utils/errors";
 import { parsePagination } from "../../utils/pagination";
-import { saveCloudFile, saveCloudImage } from "../../services/imageService";
+import { saveCloudImage } from "../../services/imageService";
 import { logAudit } from "../../services/auditService";
 import { notifySubscribersOfNewContent } from "../../services/subscriberNotifyService";
 import { env } from "../../config/env";
 import { logger } from "../../config/logger";
+import fs from "fs";
+import {
+  saveLocalFile,
+  deleteLocalFile,
+  isLocalFileReference,
+  resolveLocalFilePath,
+} from "../../utils/localFileStore";
 
 function notifyReportPublished(report: { title: string; description: string | null }) {
   notifySubscribersOfNewContent({
@@ -24,19 +31,29 @@ const EXT_CONTENT_TYPES: Record<string, string> = {
   ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 };
 
-// Report files are uploaded to Cloudinary as resource_type "raw" with no extension in
-// the URL, so a direct link leaves the browser without a filename or content type to
-// go on. Proxy the download so we can hand back both explicitly.
+// Report files live either on the backend's own disk (new uploads — see
+// createImpactReport) or, for rows created before that change, on Cloudinary as a "raw"
+// resource with no extension in the URL. Either way, proxy the download so we can hand
+// back a correct filename and Content-Type explicitly.
 async function streamReportFile(res: Response, report: { fileUrl: string; fileName: string | null }) {
+  const rawName = report.fileName || "report.pdf";
+  const ext = rawName.includes(".") ? rawName.slice(rawName.lastIndexOf(".")).toLowerCase() : "";
+  const filename = ext ? rawName : `${rawName}.pdf`;
+
+  if (isLocalFileReference(report.fileUrl)) {
+    const filePath = resolveLocalFilePath(report.fileUrl);
+    if (!fs.existsSync(filePath)) throw new NotFoundError("File not found");
+    res.setHeader("Content-Type", EXT_CONTENT_TYPES[ext] || "application/octet-stream");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    fs.createReadStream(filePath).pipe(res);
+    return;
+  }
+
   const response = await fetch(report.fileUrl);
   if (!response.ok || !response.body) {
     throw new NotFoundError("File not found");
   }
-  const rawName = report.fileName || "report.pdf";
-  const ext = rawName.includes(".") ? rawName.slice(rawName.lastIndexOf(".")).toLowerCase() : "";
   const contentType = EXT_CONTENT_TYPES[ext] || response.headers.get("content-type") || "application/octet-stream";
-  const filename = ext ? rawName : `${rawName}.pdf`;
-
   res.setHeader("Content-Type", contentType);
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
   const nodeStream = Readable.fromWeb(response.body as any);
@@ -49,7 +66,7 @@ export async function createImpactReport(req: Request, res: Response) {
 
   const reportFile = files?.file?.[0];
   if (!reportFile) throw new ValidationError("A report file is required");
-  const uploadedFile = await saveCloudFile(reportFile, "wfw/impact-reports");
+  const uploadedFile = await saveLocalFile(reportFile, "impact-reports");
 
   const coverFile = files?.coverImage?.[0];
   const coverImage = coverFile ? (await saveCloudImage(coverFile, "wfw/impact-reports")).url : null;
@@ -61,7 +78,7 @@ export async function createImpactReport(req: Request, res: Response) {
       year: year ? Number(year) : null,
       description: description || null,
       coverImage,
-      fileUrl: uploadedFile.url,
+      fileUrl: uploadedFile.reference,
       fileName: reportFile.originalname || null,
       status: resolvedStatus,
       publishedAt: resolvedStatus === "PUBLISHED" ? new Date() : null,
@@ -120,8 +137,9 @@ export async function updateImpactReport(req: Request, res: Response) {
   const files = req.files as Record<string, Express.Multer.File[]> | undefined;
   const reportFile = files?.file?.[0];
   if (reportFile) {
-    const uploaded = await saveCloudFile(reportFile, "wfw/impact-reports");
-    updates.fileUrl = uploaded.url;
+    const uploaded = await saveLocalFile(reportFile, "impact-reports");
+    if (isLocalFileReference(existing.fileUrl)) await deleteLocalFile(existing.fileUrl);
+    updates.fileUrl = uploaded.reference;
     updates.fileName = reportFile.originalname || null;
   }
   const coverFile = files?.coverImage?.[0];
@@ -138,7 +156,8 @@ export async function updateImpactReport(req: Request, res: Response) {
 
 export async function deleteImpactReport(req: Request, res: Response) {
   const { id } = req.params;
-  await prisma.impactReport.delete({ where: { id } });
+  const deleted = await prisma.impactReport.delete({ where: { id } });
+  if (isLocalFileReference(deleted.fileUrl)) await deleteLocalFile(deleted.fileUrl);
   await logAudit("impactReport.delete", req.user?.id ?? null, { id });
   res.json({ success: true });
 }

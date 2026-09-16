@@ -1,6 +1,7 @@
 import { v2 as cloudinary } from "cloudinary";
 import sharp from "sharp";
 import { env } from "../config/env";
+import { ValidationError } from "../utils/errors";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegPath from "ffmpeg-static";
 import fs from "fs/promises";
@@ -26,7 +27,7 @@ export async function saveCloudImage(file: Express.Multer.File, folder: string) 
     .toBuffer();
 
   if (processed.length > 10 * 1024 * 1024) {
-    throw new Error("Compressed image is still above 10MB. Please upload a smaller image.");
+    throw new ValidationError("Compressed image is still above 10MB. Please upload a smaller image.");
   }
 
   return new Promise<{ url: string; publicId: string }>((resolve, reject) => {
@@ -38,7 +39,7 @@ export async function saveCloudImage(file: Express.Multer.File, folder: string) 
       },
       (error, result) => {
         if (error || !result) {
-          reject(error ?? new Error("Cloudinary upload failed"));
+          reject(toUploadError(error));
           return;
         }
         resolve({ url: result.secure_url, publicId: result.public_id });
@@ -58,7 +59,7 @@ export async function saveCloudFile(file: Express.Multer.File, folder: string) {
       },
       (error, result) => {
         if (error || !result) {
-          reject(error ?? new Error("Cloudinary upload failed"));
+          reject(toUploadError(error));
           return;
         }
         resolve({ url: result.secure_url, publicId: result.public_id });
@@ -67,6 +68,16 @@ export async function saveCloudFile(file: Express.Multer.File, folder: string) {
 
     uploadStream.end(file.buffer);
   });
+}
+
+// Cloudinary rejects oversized uploads (e.g. raw files over this account's plan limit)
+// with its own "File size too large" error, which otherwise surfaces as an opaque 500.
+function toUploadError(error: unknown): Error {
+  const message = (error as { message?: string } | undefined)?.message;
+  if (message && /file size too large/i.test(message)) {
+    return new ValidationError("This file is too large for our file host. Please upload a smaller file.");
+  }
+  return (error as Error | undefined) ?? new Error("Cloudinary upload failed");
 }
 
 export async function saveCloudVideo(file: Express.Multer.File, folder: string) {
@@ -79,7 +90,7 @@ export async function saveCloudVideo(file: Express.Multer.File, folder: string) 
       },
       (error, result) => {
         if (error || !result) {
-          reject(error ?? new Error("Cloudinary upload failed"));
+          reject(toUploadError(error));
           return;
         }
         resolve({ url: result.secure_url, publicId: result.public_id });
