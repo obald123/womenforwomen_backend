@@ -1,37 +1,42 @@
-import path from "path";
-import { mailer } from "../config/mail";
 import { env } from "../config/env";
 import { logger } from "../config/logger";
 
-// Referencing the logo by URL only works if that URL is publicly reachable — a
-// localhost BASE_URL (or any dev URL) is invisible to a recipient's email client.
-// Shipping it as an inline CID attachment instead makes it render everywhere,
-// regardless of environment.
-const LOGO_PATH = path.join(process.cwd(), "assets", "email-logo.png");
-const LOGO_CID = "wfwlogo";
+// SMTP (port 587/465) is blocked outbound on Render's network — every send attempt
+// timed out at the TCP handshake stage regardless of host/port/IPv4-forcing. Brevo's
+// HTTP API travels over plain HTTPS (443), which isn't subject to that restriction.
+const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
 export async function sendMail(to: string, subject: string, html: string, text: string) {
   const isDevPlaceholder =
-    env.NODE_ENV !== "production" && env.MAIL_HOST.includes("example.com");
+    env.NODE_ENV !== "production" && env.BREVO_API_KEY.startsWith("your_");
   if (isDevPlaceholder) {
-    logger.warn("Email skipped in development (placeholder SMTP host)", { to, subject });
+    logger.warn("Email skipped in development (placeholder Brevo API key)", { to, subject });
     return;
   }
 
-  try {
-    await mailer.sendMail({
-      from: env.MAIL_FROM,
-      to,
+  const res = await fetch(BREVO_API_URL, {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      "content-type": "application/json",
+      "api-key": env.BREVO_API_KEY,
+    },
+    body: JSON.stringify({
+      sender: { email: env.MAIL_FROM, name: "Women for Women Rwanda" },
+      to: [{ email: to }],
       subject,
-      html,
-      text,
-      attachments: [{ filename: "logo.png", path: LOGO_PATH, cid: LOGO_CID }],
-    });
-  } catch (err) {
+      htmlContent: html,
+      textContent: text,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    const error = new Error(`Brevo API error (${res.status}): ${body}`);
     if (env.NODE_ENV !== "production") {
-      logger.warn("Email send failed in development", { error: (err as Error).message });
+      logger.warn("Email send failed in development", { error: error.message });
       return;
     }
-    throw err;
+    throw error;
   }
 }

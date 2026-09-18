@@ -1,3 +1,19 @@
+import fs from "fs";
+import path from "path";
+
+// Sending over Brevo's HTTP API (see mailService.ts) rather than raw SMTP means there's
+// no MIME multipart/related part to hang a cid: reference off of, so the logo is
+// inlined as a data URI instead — works identically regardless of transport and
+// doesn't depend on BASE_URL being publicly reachable.
+const LOGO_DATA_URI = (() => {
+  try {
+    const buffer = fs.readFileSync(path.join(process.cwd(), "assets", "email-logo.png"));
+    return `data:image/png;base64,${buffer.toString("base64")}`;
+  } catch {
+    return "";
+  }
+})();
+
 function baseEmailTemplate(title: string, preheader: string, bodyHtml: string) {
   return `
   <!doctype html>
@@ -12,7 +28,7 @@ function baseEmailTemplate(title: string, preheader: string, bodyHtml: string) {
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px; margin:0 auto; background:#ffffff; border:1px solid #E7ECEB;">
           <tr>
             <td style="padding:28px 28px 0;">
-              <img src="cid:wfwlogo" alt="Women for Women Rwanda" width="140" style="display:block; height:auto;" />
+              <img src="${LOGO_DATA_URI}" alt="Women for Women Rwanda" width="140" style="display:block; height:auto;" />
               <div style="font-size:10px; letter-spacing:0.3em; text-transform:uppercase; color:#00A991; font-weight:700; margin-top:12px;">
                 Women for Women Rwanda
               </div>
