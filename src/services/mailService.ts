@@ -30,8 +30,9 @@ export async function sendMail(to: string, subject: string, html: string, text: 
     }),
   });
 
+  const body = await res.text().catch(() => "");
+
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
     const error = new Error(`Brevo API error (${res.status}): ${body}`);
     if (env.NODE_ENV !== "production") {
       logger.warn("Email send failed in development", { error: error.message });
@@ -39,4 +40,18 @@ export async function sendMail(to: string, subject: string, html: string, text: 
     }
     throw error;
   }
+
+  // A 2xx here only means Brevo accepted and queued the request — it says nothing
+  // about whether the email actually reached the inbox (could still bounce, get
+  // blocked by their anti-spam review, or land in spam). The messageId is what you
+  // look up in Brevo's dashboard (Transactional > Logs) to see the real delivery
+  // status.
+  let messageId: string | undefined;
+  try {
+    messageId = JSON.parse(body)?.messageId;
+  } catch {
+    // Brevo always returns JSON on success; an unparsable body just means we skip
+    // logging the id, not that the send failed.
+  }
+  logger.info("Email accepted by Brevo", { to, subject, messageId, status: res.status });
 }

@@ -27,3 +27,12 @@ export const listGallerySchema = z.object({
     pageSize: z.string().optional(),
   }),
 });
+
+export const addGalleryMediaSchema = z.object({
+  params: z.object({ id: z.string().min(1) }),
+});
+
+export const updateGalleryMediaCaptionSchema = z.object({
+  params: z.object({ id: z.string().min(1), imageId: z.string().min(1).optional(), videoId: z.string().min(1).optional() }),
+  body: z.object({ caption: z.string().max(500).optional() }),
+});

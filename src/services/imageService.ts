@@ -55,6 +55,16 @@ export async function saveCloudImage(file: Express.Multer.File, folder: string) 
   });
 }
 
+export async function deleteCloudAsset(publicId: string, resourceType: "image" | "video") {
+  try {
+    await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+  } catch (err) {
+    // Best-effort: an orphaned Cloudinary asset is preferable to blocking the
+    // admin from removing the item from the gallery.
+    console.error(`Failed to delete Cloudinary asset ${publicId}:`, err);
+  }
+}
+
 export async function saveCloudFile(file: Express.Multer.File, folder: string) {
   return new Promise<{ url: string; publicId: string }>((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
