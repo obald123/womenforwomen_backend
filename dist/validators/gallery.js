@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.listGallerySchema = exports.updateGallerySchema = exports.createGallerySchema = void 0;
+exports.updateGalleryMediaCaptionSchema = exports.addGalleryMediaSchema = exports.listGallerySchema = exports.updateGallerySchema = exports.createGallerySchema = void 0;
 const zod_1 = require("zod");
 const status = zod_1.z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 const layout = zod_1.z.enum(["GRID", "MASONRY", "SLIDESHOW"]);
@@ -25,5 +25,12 @@ exports.listGallerySchema = zod_1.z.object({
         page: zod_1.z.string().optional(),
         pageSize: zod_1.z.string().optional(),
     }),
+});
+exports.addGalleryMediaSchema = zod_1.z.object({
+    params: zod_1.z.object({ id: zod_1.z.string().min(1) }),
+});
+exports.updateGalleryMediaCaptionSchema = zod_1.z.object({
+    params: zod_1.z.object({ id: zod_1.z.string().min(1), imageId: zod_1.z.string().min(1).optional(), videoId: zod_1.z.string().min(1).optional() }),
+    body: zod_1.z.object({ caption: zod_1.z.string().max(500).optional() }),
 });
 //# sourceMappingURL=gallery.js.map

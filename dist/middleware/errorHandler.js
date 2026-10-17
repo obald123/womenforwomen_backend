@@ -11,7 +11,7 @@ function errorHandler(err, req, res, _next) {
         const code = err?.code;
         if (code === "LIMIT_FILE_SIZE") {
             status = 413;
-            message = "File too large (max 10MB)";
+            message = "File too large";
         }
         else {
             status = 400;

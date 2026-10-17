@@ -9,7 +9,6 @@ const errors_1 = require("../../utils/errors");
 const emailTemplates_1 = require("../../utils/emailTemplates");
 const mailService_1 = require("../../services/mailService");
 const auditService_1 = require("../../services/auditService");
-const env_1 = require("../../config/env");
 async function listSubscribers(_req, res) {
     const items = await prisma_1.prisma.subscriber.findMany({ orderBy: { createdAt: "desc" } });
     res.json({ success: true, data: items });
@@ -26,8 +25,7 @@ async function sendCampaign(req, res) {
     if (!campaign)
         throw new errors_1.NotFoundError("Campaign not found");
     const subs = await prisma_1.prisma.subscriber.findMany();
-    const logoUrl = `${env_1.env.BASE_URL}/images/site/logo.png`;
-    const template = (0, emailTemplates_1.newsletterTemplate)(campaign.subject, campaign.content, logoUrl);
+    const template = (0, emailTemplates_1.newsletterTemplate)(campaign.subject, campaign.content);
     subs.forEach((s, idx) => {
         setTimeout(async () => {
             await (0, mailService_1.sendMail)(s.email, template.subject, template.html, template.text);

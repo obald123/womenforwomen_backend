@@ -5,10 +5,8 @@ import { ValidationError } from "./errors";
 // Keep images lower, but allow larger videos for gallery uploads.
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 const MAX_GALLERY_FILE_SIZE = 200 * 1024 * 1024;
-// Report documents are stored on the backend's own disk (see saveLocalFile), not
-// Cloudinary, so they aren't bound by Cloudinary's 10MB raw-file cap — allow more room
-// for image-heavy annual reports.
-const MAX_REPORT_FILE_SIZE = 50 * 1024 * 1024;
+// Cloudinary raw uploads are limited by the configured account plan.
+const MAX_REPORT_FILE_SIZE = 10 * 1024 * 1024;
 const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const videoAllowed = ["video/mp4", "video/webm", "video/ogg", "video/quicktime", "video/x-matroska"];
 const docAllowed = [

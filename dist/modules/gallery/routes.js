@@ -18,5 +18,11 @@ router.get("/:id", (0, asyncHandler_1.asyncHandler)(controller_1.getGallery));
 router.patch("/:id", (0, validate_1.validate)(gallery_1.updateGallerySchema), (0, asyncHandler_1.asyncHandler)(controller_1.updateGallery));
 router.delete("/:id", (0, asyncHandler_1.asyncHandler)(controller_1.deleteGallery));
 router.post("/:id/publish", (0, asyncHandler_1.asyncHandler)(controller_1.publishGallery));
+router.post("/:id/images", upload_1.uploadGallery.array("images", 10), (0, validate_1.validate)(gallery_1.addGalleryMediaSchema), (0, asyncHandler_1.asyncHandler)(controller_1.addGalleryImages));
+router.delete("/:id/images/:imageId", (0, asyncHandler_1.asyncHandler)(controller_1.deleteGalleryImage));
+router.patch("/:id/images/:imageId", (0, validate_1.validate)(gallery_1.updateGalleryMediaCaptionSchema), (0, asyncHandler_1.asyncHandler)(controller_1.updateGalleryImageCaption));
+router.post("/:id/videos", upload_1.uploadGallery.array("videos", 5), (0, validate_1.validate)(gallery_1.addGalleryMediaSchema), (0, asyncHandler_1.asyncHandler)(controller_1.addGalleryVideos));
+router.delete("/:id/videos/:videoId", (0, asyncHandler_1.asyncHandler)(controller_1.deleteGalleryVideo));
+router.patch("/:id/videos/:videoId", (0, validate_1.validate)(gallery_1.updateGalleryMediaCaptionSchema), (0, asyncHandler_1.asyncHandler)(controller_1.updateGalleryVideoCaption));
 exports.default = router;
 //# sourceMappingURL=routes.js.map

@@ -23,8 +23,13 @@ async function createMessage(req, res) {
             message,
         },
     });
-    const logoUrl = `${env_1.env.BASE_URL}/images/site/logo.png`;
-    const template = (0, emailTemplates_1.adminMessageTemplate)({ name, email, phone: phone || null, organization: organization || null, message }, logoUrl);
+    const template = (0, emailTemplates_1.adminMessageTemplate)({
+        name,
+        email,
+        phone: phone || null,
+        organization: organization || null,
+        message,
+    });
     await (0, mailService_1.sendMail)(env_1.env.ADMIN_EMAIL, template.subject, template.html, template.text);
     res.status(201).json({ success: true, data: item });
 }

@@ -10,6 +10,8 @@ const errors_1 = require("./errors");
 // Keep images lower, but allow larger videos for gallery uploads.
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 const MAX_GALLERY_FILE_SIZE = 200 * 1024 * 1024;
+// Cloudinary raw uploads are limited by the configured account plan.
+const MAX_REPORT_FILE_SIZE = 10 * 1024 * 1024;
 const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const videoAllowed = ["video/mp4", "video/webm", "video/ogg", "video/quicktime", "video/x-matroska"];
 const docAllowed = [
@@ -51,7 +53,7 @@ exports.uploadDocs = (0, multer_1.default)({
 // Report uploads: a document for the "file" field, plus an optional image cover.
 exports.uploadReport = (0, multer_1.default)({
     storage,
-    limits: { fileSize: MAX_FILE_SIZE },
+    limits: { fileSize: MAX_REPORT_FILE_SIZE },
     fileFilter: (_req, file, cb) => {
         if (file.fieldname === "coverImage") {
             if (!allowed.includes(file.mimetype)) {

@@ -7,7 +7,6 @@ const env_1 = require("../config/env");
 const logger_1 = require("../config/logger");
 const mailService_1 = require("./mailService");
 const emailTemplates_1 = require("../utils/emailTemplates");
-const logoUrl = () => `${env_1.env.BASE_URL}/images/site/logo.png`;
 /**
  * Emails every verified subscriber about a newly published item, and records
  * it as a newsletter campaign so it shows up in the admin's send history
@@ -17,7 +16,7 @@ async function notifySubscribersOfNewContent(payload) {
     const subs = await prisma_1.prisma.subscriber.findMany({ where: { verified: true } });
     if (!subs.length)
         return;
-    const template = (0, emailTemplates_1.newContentAlertTemplate)(payload, logoUrl());
+    const template = (0, emailTemplates_1.newContentAlertTemplate)(payload);
     const campaign = await prisma_1.prisma.newsletterCampaign.create({
         data: { subject: template.subject, content: payload.excerpt || payload.title },
     });
@@ -63,7 +62,7 @@ async function sendWelcomeDigest(email) {
     const template = (0, emailTemplates_1.welcomeDigestTemplate)({
         articles: articles.map((a) => ({ title: a.title, url: `${env_1.env.BASE_URL}/news/${a.slug}` })),
         reports: reports.map((r) => ({ title: r.title, url: `${env_1.env.BASE_URL}/impact#impact-reports` })),
-    }, logoUrl());
+    });
     await (0, mailService_1.sendMail)(email, template.subject, template.html, template.text);
 }
 //# sourceMappingURL=subscriberNotifyService.js.map

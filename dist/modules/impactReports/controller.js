@@ -1,4 +1,7 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createImpactReport = createImpactReport;
 exports.listImpactReports = listImpactReports;
@@ -16,6 +19,8 @@ const auditService_1 = require("../../services/auditService");
 const subscriberNotifyService_1 = require("../../services/subscriberNotifyService");
 const env_1 = require("../../config/env");
 const logger_1 = require("../../config/logger");
+const fs_1 = __importDefault(require("fs"));
+const localFileStore_1 = require("../../utils/localFileStore");
 function notifyReportPublished(report) {
     (0, subscriberNotifyService_1.notifySubscribersOfNewContent)({
         kicker: "New Impact Report",
@@ -29,18 +34,26 @@ const EXT_CONTENT_TYPES = {
     ".doc": "application/msword",
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 };
-// Report files are uploaded to Cloudinary as resource_type "raw" with no extension in
-// the URL, so a direct link leaves the browser without a filename or content type to
-// go on. Proxy the download so we can hand back both explicitly.
+// Proxy report downloads so we can provide the original filename and Content-Type.
 async function streamReportFile(res, report) {
+    const rawName = report.fileName || "report.pdf";
+    const ext = rawName.includes(".") ? rawName.slice(rawName.lastIndexOf(".")).toLowerCase() : "";
+    const filename = ext ? rawName : `${rawName}.pdf`;
+    // Keep old local references readable until those records are re-uploaded to Cloudinary.
+    if ((0, localFileStore_1.isLocalFileReference)(report.fileUrl)) {
+        const filePath = (0, localFileStore_1.resolveLocalFilePath)(report.fileUrl);
+        if (!fs_1.default.existsSync(filePath))
+            throw new errors_1.NotFoundError("File not found");
+        res.setHeader("Content-Type", EXT_CONTENT_TYPES[ext] || "application/octet-stream");
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        fs_1.default.createReadStream(filePath).pipe(res);
+        return;
+    }
     const response = await fetch(report.fileUrl);
     if (!response.ok || !response.body) {
         throw new errors_1.NotFoundError("File not found");
     }
-    const rawName = report.fileName || "report.pdf";
-    const ext = rawName.includes(".") ? rawName.slice(rawName.lastIndexOf(".")).toLowerCase() : "";
     const contentType = EXT_CONTENT_TYPES[ext] || response.headers.get("content-type") || "application/octet-stream";
-    const filename = ext ? rawName : `${rawName}.pdf`;
     res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     const nodeStream = stream_1.Readable.fromWeb(response.body);

@@ -3,18 +3,13 @@ import { Readable } from "stream";
 import { prisma } from "../../config/prisma";
 import { NotFoundError, ValidationError } from "../../utils/errors";
 import { parsePagination } from "../../utils/pagination";
-import { saveCloudImage } from "../../services/imageService";
+import { saveCloudFile, saveCloudImage } from "../../services/imageService";
 import { logAudit } from "../../services/auditService";
 import { notifySubscribersOfNewContent } from "../../services/subscriberNotifyService";
 import { env } from "../../config/env";
 import { logger } from "../../config/logger";
 import fs from "fs";
-import {
-  saveLocalFile,
-  deleteLocalFile,
-  isLocalFileReference,
-  resolveLocalFilePath,
-} from "../../utils/localFileStore";
+import { isLocalFileReference, resolveLocalFilePath } from "../../utils/localFileStore";
 
 function notifyReportPublished(report: { title: string; description: string | null }) {
   notifySubscribersOfNewContent({
@@ -31,15 +26,13 @@ const EXT_CONTENT_TYPES: Record<string, string> = {
   ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 };
 
-// Report files live either on the backend's own disk (new uploads — see
-// createImpactReport) or, for rows created before that change, on Cloudinary as a "raw"
-// resource with no extension in the URL. Either way, proxy the download so we can hand
-// back a correct filename and Content-Type explicitly.
+// Proxy report downloads so we can provide the original filename and Content-Type.
 async function streamReportFile(res: Response, report: { fileUrl: string; fileName: string | null }) {
   const rawName = report.fileName || "report.pdf";
   const ext = rawName.includes(".") ? rawName.slice(rawName.lastIndexOf(".")).toLowerCase() : "";
   const filename = ext ? rawName : `${rawName}.pdf`;
 
+  // Keep old local references readable until those records are re-uploaded to Cloudinary.
   if (isLocalFileReference(report.fileUrl)) {
     const filePath = resolveLocalFilePath(report.fileUrl);
     if (!fs.existsSync(filePath)) throw new NotFoundError("File not found");
@@ -66,7 +59,7 @@ export async function createImpactReport(req: Request, res: Response) {
 
   const reportFile = files?.file?.[0];
   if (!reportFile) throw new ValidationError("A report file is required");
-  const uploadedFile = await saveLocalFile(reportFile, "impact-reports");
+  const uploadedFile = await saveCloudFile(reportFile, "wfw/impact-reports");
 
   const coverFile = files?.coverImage?.[0];
   const coverImage = coverFile ? (await saveCloudImage(coverFile, "wfw/impact-reports")).url : null;
@@ -78,7 +71,7 @@ export async function createImpactReport(req: Request, res: Response) {
       year: year ? Number(year) : null,
       description: description || null,
       coverImage,
-      fileUrl: uploadedFile.reference,
+      fileUrl: uploadedFile.url,
       fileName: reportFile.originalname || null,
       status: resolvedStatus,
       publishedAt: resolvedStatus === "PUBLISHED" ? new Date() : null,
@@ -137,9 +130,8 @@ export async function updateImpactReport(req: Request, res: Response) {
   const files = req.files as Record<string, Express.Multer.File[]> | undefined;
   const reportFile = files?.file?.[0];
   if (reportFile) {
-    const uploaded = await saveLocalFile(reportFile, "impact-reports");
-    if (isLocalFileReference(existing.fileUrl)) await deleteLocalFile(existing.fileUrl);
-    updates.fileUrl = uploaded.reference;
+    const uploaded = await saveCloudFile(reportFile, "wfw/impact-reports");
+    updates.fileUrl = uploaded.url;
     updates.fileName = reportFile.originalname || null;
   }
   const coverFile = files?.coverImage?.[0];
@@ -156,8 +148,7 @@ export async function updateImpactReport(req: Request, res: Response) {
 
 export async function deleteImpactReport(req: Request, res: Response) {
   const { id } = req.params;
-  const deleted = await prisma.impactReport.delete({ where: { id } });
-  if (isLocalFileReference(deleted.fileUrl)) await deleteLocalFile(deleted.fileUrl);
+  await prisma.impactReport.delete({ where: { id } });
   await logAudit("impactReport.delete", req.user?.id ?? null, { id });
   res.json({ success: true });
 }

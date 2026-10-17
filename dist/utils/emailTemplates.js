@@ -1,4 +1,7 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.verificationEmailTemplate = verificationEmailTemplate;
 exports.resetPasswordTemplate = resetPasswordTemplate;
@@ -6,6 +9,21 @@ exports.newsletterTemplate = newsletterTemplate;
 exports.newContentAlertTemplate = newContentAlertTemplate;
 exports.welcomeDigestTemplate = welcomeDigestTemplate;
 exports.adminMessageTemplate = adminMessageTemplate;
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
+// Sending over Brevo's HTTP API (see mailService.ts) rather than raw SMTP means there's
+// no MIME multipart/related part to hang a cid: reference off of, so the logo is
+// inlined as a data URI instead — works identically regardless of transport and
+// doesn't depend on BASE_URL being publicly reachable.
+const LOGO_DATA_URI = (() => {
+    try {
+        const buffer = fs_1.default.readFileSync(path_1.default.join(process.cwd(), "assets", "email-logo.png"));
+        return `data:image/png;base64,${buffer.toString("base64")}`;
+    }
+    catch {
+        return "";
+    }
+})();
 function baseEmailTemplate(title, preheader, bodyHtml) {
     return `
   <!doctype html>
@@ -20,7 +38,7 @@ function baseEmailTemplate(title, preheader, bodyHtml) {
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px; margin:0 auto; background:#ffffff; border:1px solid #E7ECEB;">
           <tr>
             <td style="padding:28px 28px 0;">
-              <img src="{{LOGO_URL}}" alt="Women for Women Rwanda" width="140" style="display:block; height:auto;" />
+              <img src="${LOGO_DATA_URI}" alt="Women for Women Rwanda" width="140" style="display:block; height:auto;" />
               <div style="font-size:10px; letter-spacing:0.3em; text-transform:uppercase; color:#00A991; font-weight:700; margin-top:12px;">
                 Women for Women Rwanda
               </div>
@@ -39,7 +57,7 @@ function baseEmailTemplate(title, preheader, bodyHtml) {
           </tr>
           <tr>
             <td style="padding:18px 28px; background:#0B1E1A; color:#B9D0CC; font-size:11px;">
-              Women for Women Rwanda â€¢ Kigali, Rwanda
+              Women for Women Rwanda &bull; Kigali, Rwanda
             </td>
           </tr>
         </table>
@@ -48,7 +66,7 @@ function baseEmailTemplate(title, preheader, bodyHtml) {
   </html>
   `;
 }
-function verificationEmailTemplate(link, logoUrl) {
+function verificationEmailTemplate(link) {
     const body = `
     <p style="margin:0 0 16px; font-size:14px; color:#26302F;">
       Please confirm your subscription to receive our latest news, success stories, and program updates.
@@ -62,11 +80,11 @@ function verificationEmailTemplate(link, logoUrl) {
   `;
     return {
         subject: "Confirm your subscription",
-        html: baseEmailTemplate("Confirm Subscription", "Please confirm your subscription.", body).replace("{{LOGO_URL}}", logoUrl),
+        html: baseEmailTemplate("Confirm Subscription", "Please confirm your subscription.", body),
         text: `Confirm your subscription: ${link}`,
     };
 }
-function resetPasswordTemplate(link, logoUrl) {
+function resetPasswordTemplate(link) {
     return {
         subject: "Reset your password",
         html: baseEmailTemplate("Password Reset", "Use the secure link below to reset your password.", `
@@ -76,18 +94,18 @@ function resetPasswordTemplate(link, logoUrl) {
       <a href="${link}" style="display:inline-block; background:#0D2323; color:#ffffff; text-decoration:none; padding:12px 18px; font-size:12px; font-weight:800; letter-spacing:0.2em; text-transform:uppercase;">
         Reset Password
       </a>
-    `).replace("{{LOGO_URL}}", logoUrl),
+    `),
         text: `Reset your password: ${link}`,
     };
 }
-function newsletterTemplate(subject, body, logoUrl) {
+function newsletterTemplate(subject, body) {
     return {
         subject,
-        html: baseEmailTemplate(subject, "Latest updates from Women for Women Rwanda.", `<div style="font-size:14px; color:#26302F; line-height:1.7;">${body}</div>`).replace("{{LOGO_URL}}", logoUrl),
+        html: baseEmailTemplate(subject, "Latest updates from Women for Women Rwanda.", `<div style="font-size:14px; color:#26302F; line-height:1.7;">${body}</div>`),
         text: body,
     };
 }
-function newContentAlertTemplate(payload, logoUrl) {
+function newContentAlertTemplate(payload) {
     const { kicker, title, excerpt, url } = payload;
     const body = `
     <div style="font-size:10px; letter-spacing:0.25em; text-transform:uppercase; color:#00A991; font-weight:700; margin:0 0 10px;">
@@ -101,11 +119,11 @@ function newContentAlertTemplate(payload, logoUrl) {
   `;
     return {
         subject: `${kicker}: ${title}`,
-        html: baseEmailTemplate(kicker, "New content is now live on our site.", body).replace("{{LOGO_URL}}", logoUrl),
+        html: baseEmailTemplate(kicker, "New content is now live on our site.", body),
         text: `${kicker}: ${title}\n${excerpt || ""}\n${url}`,
     };
 }
-function welcomeDigestTemplate(payload, logoUrl) {
+function welcomeDigestTemplate(payload) {
     const { articles, reports } = payload;
     const listHtml = (items) => items
         .map((item) => `
@@ -129,7 +147,7 @@ function welcomeDigestTemplate(payload, logoUrl) {
   `;
     return {
         subject: "Welcome to Women for Women Rwanda",
-        html: baseEmailTemplate("Welcome", "You're subscribed to our updates.", body).replace("{{LOGO_URL}}", logoUrl),
+        html: baseEmailTemplate("Welcome", "You're subscribed to our updates.", body),
         text: [
             "Welcome to Women for Women Rwanda!",
             articles.length ? "Recent News & Stories:" : "",
@@ -141,7 +159,7 @@ function welcomeDigestTemplate(payload, logoUrl) {
             .join("\n"),
     };
 }
-function adminMessageTemplate(payload, logoUrl) {
+function adminMessageTemplate(payload) {
     const { name, email, phone, organization, message } = payload;
     const body = `
     <p style="margin:0 0 12px; font-size:14px; color:#26302F;">
@@ -158,7 +176,7 @@ function adminMessageTemplate(payload, logoUrl) {
   `;
     return {
         subject: `New partner message from ${name}`,
-        html: baseEmailTemplate("New Partner Message", "A new message was sent from the partner page.", body).replace("{{LOGO_URL}}", logoUrl),
+        html: baseEmailTemplate("New Partner Message", "A new message was sent from the partner page.", body),
         text: [
             `Name: ${name}`,
             `Email: ${email}`,
