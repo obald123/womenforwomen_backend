@@ -302,3 +302,19 @@ model GeneralApplication {
 
   @@index([status])
 }
+
+model DonationCampaign {
+  id          String   @id
+  eyebrow     String
+  title       String
+  paragraphs  Json
+  closingLine String
+  imageUrl    String
+  imageUrls   Json     @default("[]")
+  galleryItems Json    @default("[]")
+  impactFacts Json     @default("[]")
+  donationUrl String   @default("https://www.globalgiving.org/projects/help-rwandan-women-learn-earn-and-thrive/")
+  ctaLabel    String   @default("Donate now")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -5,6 +5,7 @@ Production-ready backend for Women for Women Rwanda. Built with Express, TypeScr
 ## Features
 - JWT auth (access + refresh)
 - Content modules: Articles, Events, Gallery, Team, Newsletter
+- Giving Tuesday donation campaign content and image
 - Public read endpoints (published only)
 - Local file uploads (stored in /uploads)
 - Nodemailer email templates
@@ -49,6 +50,13 @@ Images are stored locally in the `uploads/` folder and served at `http://localho
 - Admin CRUD: `/api/articles`, `/api/events`, `/api/gallery`, `/api/team`
 - Newsletter: `/api/newsletter/subscribers`, `/api/newsletter/campaigns`, `/api/newsletter/send/:id`
 - Public: `/api/public/articles`, `/api/public/events`, `/api/public/gallery`, `/api/public/team`
+- Giving Tuesday campaign: `GET /api/public/donation-campaign`
+
+The Giving Tuesday campaign is seeded by `npm run seed`. Authenticated admins can update it with
+`POST /api/donation-campaign`, sending `eyebrow`, `title`, `paragraphs` (a JSON array), `closingLine`,
+and either an `image` file or an absolute `imageUrl`. Send additional gallery photos using repeated
+`images` file fields with matching `imageCaptions`, or provide `galleryItems` as URL/caption objects.
+`impactFacts` and `donationUrl` are also configurable. Uploaded images are stored in Cloudinary.
 
 ## Notes
 - No Redis or Docker used.

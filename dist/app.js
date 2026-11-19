@@ -25,6 +25,7 @@ const routes_9 = __importDefault(require("./modules/search/routes"));
 const routes_10 = __importDefault(require("./modules/jobs/routes"));
 const routes_11 = __importDefault(require("./modules/uploads/routes"));
 const routes_12 = __importDefault(require("./modules/impactReports/routes"));
+const routes_13 = __importDefault(require("./modules/donationCampaign/routes"));
 const app = (0, express_1.default)();
 // Render (and most PaaS hosts) sit the app behind one reverse proxy hop, which
 // sets X-Forwarded-For. Without this, express-rate-limit refuses to trust that
@@ -55,6 +56,7 @@ app.use("/api/search", rateLimiters_1.adminLimiter, routes_9.default);
 app.use("/api/jobs", rateLimiters_1.adminLimiter, routes_10.default);
 app.use("/api/uploads", rateLimiters_1.adminLimiter, routes_11.default);
 app.use("/api/impact-reports", rateLimiters_1.adminLimiter, routes_12.default);
+app.use("/api/donation-campaign", rateLimiters_1.adminLimiter, routes_13.default);
 app.use("/api/public", rateLimiters_1.publicLimiter, routes_7.default);
 app.use(errorHandler_1.errorHandler);
 exports.default = app;

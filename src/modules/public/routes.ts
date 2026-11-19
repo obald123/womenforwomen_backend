@@ -15,6 +15,7 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import { publicMessageRouter } from "../messages/routes";
 import { publicJobRouter } from "../jobs/routes";
 import { publicImpactReportRouter } from "../impactReports/routes";
+import { getPublicDonationCampaign } from "../donationCampaign/controller";
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.get("/events", asyncHandler(publicEvents));
 router.get("/events/:slug", asyncHandler(publicEvent));
 router.get("/gallery", asyncHandler(publicGallery));
 router.get("/team", asyncHandler(publicTeam));
+router.get("/donation-campaign", asyncHandler(getPublicDonationCampaign));
 router.post("/subscribe", validate(subscribeSchema), asyncHandler(subscribe));
 router.get("/verify-subscription", asyncHandler(verifySubscription));
 router.use("/messages", publicMessageRouter);
