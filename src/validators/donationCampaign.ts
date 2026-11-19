@@ -9,6 +9,7 @@ export const upsertDonationCampaignSchema = z.object({
       z.string().min(1),
     ]),
     closingLine: z.string().trim().min(1),
+    ctaLabel: z.string().trim().min(1).optional(),
     imageUrl: z.string().url().optional(),
     imageUrls: z.union([z.array(z.string().url()), z.string().min(1)]).optional(),
     galleryItems: z.union([

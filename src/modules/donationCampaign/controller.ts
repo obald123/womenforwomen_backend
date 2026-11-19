@@ -90,15 +90,20 @@ export async function upsertDonationCampaign(req: Request, res: Response) {
   const files = req.files as Record<string, Express.Multer.File[]> | undefined;
   const coverFile = files?.image?.[0];
   const uploadedImage = coverFile ? await saveCloudImage(coverFile, "wfw/donation-campaigns") : undefined;
-  const imageUrl =
-    uploadedImage?.url ??
-    (typeof body.imageUrl === "string" ? body.imageUrl : existing?.imageUrl);
-  if (!imageUrl) {
-    throw new ValidationError("An image file or imageUrl is required to create the campaign");
-  }
   const uploadedGalleryImages = await Promise.all(
     (files?.images ?? []).map((file) => saveCloudImage(file, "wfw/donation-campaigns")),
   );
+  const suppliedCoverUrl =
+    typeof body.imageUrl === "string" && body.imageUrl.trim() ? body.imageUrl.trim() : undefined;
+  const resolvedImageUrl =
+    uploadedImage?.url ??
+    suppliedCoverUrl ??
+    suppliedGalleryItems?.[0]?.url ??
+    uploadedGalleryImages[0]?.url ??
+    existing?.imageUrl;
+  if (!resolvedImageUrl) {
+    throw new ValidationError("At least one campaign image is required");
+  }
   const currentImageUrls = Array.isArray(existing?.imageUrls)
     ? existing.imageUrls.filter((url): url is string => typeof url === "string")
     : [];
@@ -138,16 +143,19 @@ export async function upsertDonationCampaign(req: Request, res: Response) {
     title: String(body.title),
     paragraphs,
     closingLine: String(body.closingLine),
-    imageUrl,
-    imageUrls: imageUrls.length ? imageUrls : [imageUrl],
-    galleryItems: galleryItems.length ? galleryItems : [{ url: imageUrl, caption: String(body.title) }],
+    imageUrl: resolvedImageUrl,
+    imageUrls: imageUrls.length ? imageUrls : [resolvedImageUrl],
+    galleryItems: galleryItems.length ? galleryItems : [{ url: resolvedImageUrl, caption: String(body.title) }],
     impactFacts: body.impactFacts !== undefined ? impactFacts : existing?.impactFacts ?? [],
     donationUrl:
       typeof body.donationUrl === "string"
         ? body.donationUrl
         : existing?.donationUrl ??
           "https://www.globalgiving.org/projects/help-rwandan-women-learn-earn-and-thrive/",
-    ctaLabel: "Donate now",
+    ctaLabel:
+      typeof body.ctaLabel === "string" && body.ctaLabel.trim()
+        ? body.ctaLabel.trim()
+        : existing?.ctaLabel ?? "Donate now",
   };
   const campaign = await prisma.donationCampaign.upsert({
     where: { id: CAMPAIGN_ID },
